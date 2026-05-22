@@ -1,0 +1,15 @@
+.venv/
+node_modules/
+dist/
+__pycache__/
+*.pyc
+*.log
+api/data/uploads/*
+api/data/frames/*
+api/data/exports/*
+!api/data/uploads/.gitkeep
+!api/data/frames/.gitkeep
+!api/data/exports/.gitkeep
+.env
+.env.local
+*.tsbuildinfo
