@@ -21,6 +21,7 @@ from app.domain.health_service import (
     update_device,
     upsert_health_profile,
 )
+from app.domain.insta360_sdk_bridge import get_command_plan, get_sdk_status
 from app.domain.store import store
 from app.schemas.health import (
     CaptureCreateRequest,
@@ -35,6 +36,8 @@ from app.schemas.health import (
     HealthDashboardResponse,
     HealthProfileRequest,
     HealthProfileResponse,
+    Insta360CommandPlanResponse,
+    Insta360SdkStatusResponse,
     OfflineSyncResponse,
     TrendResponse,
     WeeklyReportResponse,
@@ -83,6 +86,19 @@ def sync_camera_cache(device_id: str) -> dict:
     if not result:
         raise HTTPException(status_code=404, detail="Device not found")
     return result
+
+
+@router.get("/insta360/sdk/status", response_model=Insta360SdkStatusResponse)
+def insta360_sdk_status() -> dict:
+    return get_sdk_status()
+
+
+@router.get("/insta360/sdk/command-plan", response_model=Insta360CommandPlanResponse)
+def insta360_sdk_command_plan(operation: str = "capture") -> dict:
+    plan = get_command_plan(operation)
+    if not plan:
+        raise HTTPException(status_code=400, detail=f"Unsupported Insta360 SDK operation: {operation}")
+    return plan
 
 
 @router.post("/captures", response_model=CaptureResponse)

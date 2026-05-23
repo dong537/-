@@ -170,6 +170,51 @@ export type OfflineSyncResponse = {
   synced_captures: CaptureResponse[];
 };
 
+export type Insta360SdkFeature = {
+  key: string;
+  name: string;
+  sdk_calls: string[];
+  demo_files: string[];
+  project_usage: string;
+};
+
+export type Insta360SdkStatus = {
+  provider: string;
+  sdk_version: string;
+  bridge_mode: string;
+  native_bridge_available: boolean;
+  demo_reference: {
+    path: string;
+    exists: boolean;
+    committed: boolean;
+    note: string;
+  };
+  features: Insta360SdkFeature[];
+  workflows: string[];
+  integration_notes: string[];
+  generated_at: string;
+};
+
+export type Insta360SdkOperation = "bind" | "capture" | "sync" | "export" | "status";
+
+export type Insta360CommandPlan = {
+  operation: Insta360SdkOperation;
+  provider: string;
+  sdk_version: string;
+  title: string;
+  recommended_connection: string;
+  backend_handoff: string;
+  safety_checks: string[];
+  steps: Array<{
+    order: number;
+    name: string;
+    sdk_calls: string[];
+    demo_files: string[];
+    backend_event: string;
+    notes: string;
+  }>;
+};
+
 export type TrendResponse = {
   user_id: string;
   range_days: number;

@@ -82,6 +82,8 @@ http://127.0.0.1:8010
   "store_loaded_at": null,
   "store_saved_at": "2026-05-23T00:00:00+00:00",
   "store_persistence_error": null,
+  "insta360_sdk_demo_path": "",
+  "insta360_native_bridge_enabled": false,
   "counts": {
     "trips": 1,
     "media": 1,
@@ -89,6 +91,61 @@ http://127.0.0.1:8010
     "exports": 1,
     "events": 8
   }
+}
+```
+
+### `GET /api/health/insta360/sdk/status`
+
+返回影石 SDK v1.9.11 bridge contract 状态、本地 demo 引用状态和已映射能力。
+
+响应关键字段：
+
+```json
+{
+  "provider": "insta360_android_sdk_v1_9_11_bridge",
+  "sdk_version": "1.9.11",
+  "bridge_mode": "contract_only",
+  "native_bridge_available": false,
+  "demo_reference": {
+    "path": "C:\\Users\\Lenovo\\Desktop\\黑客松prd\\sdk_demo_1.9.11",
+    "exists": true,
+    "committed": false,
+    "note": "Local SDK demo is used as a reference only and is ignored by git."
+  },
+  "workflows": ["bind", "capture", "sync", "export", "status"]
+}
+```
+
+### `GET /api/health/insta360/sdk/command-plan?operation=capture`
+
+返回指定 SDK 操作的指令计划。`operation` 支持：
+
+- `bind`
+- `capture`
+- `sync`
+- `export`
+- `status`
+
+响应关键字段：
+
+```json
+{
+  "operation": "capture",
+  "provider": "insta360_android_sdk_v1_9_11_bridge",
+  "sdk_version": "1.9.11",
+  "title": "自动/手动采集",
+  "recommended_connection": "Wi-Fi 或 USB",
+  "backend_handoff": "POST /api/health/captures",
+  "steps": [
+    {
+      "order": 1,
+      "name": "读取相机能力",
+      "sdk_calls": ["fetchCameraOptions(callback)", "initCameraSupportConfig(callback)", "getSupportCaptureMode()"],
+      "demo_files": ["ui/capture/CaptureViewModel.kt"],
+      "backend_event": "校验设备在线和采集配置",
+      "notes": "旧控制流需要把 offline capture setting 批量下发到相机。"
+    }
+  ]
 }
 ```
 

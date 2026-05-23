@@ -25,6 +25,8 @@ class Settings:
     openai_vision_model = os.getenv("OPENAI_VISION_MODEL", "")
     amap_web_key = os.getenv("AMAP_WEB_KEY", "")
     amap_web_service_key = os.getenv("AMAP_WEB_SERVICE_KEY", "")
+    insta360_sdk_demo_path = os.getenv("INSTA360_SDK_DEMO_PATH", "")
+    insta360_native_bridge_enabled = os.getenv("INSTA360_NATIVE_BRIDGE_ENABLED", "false").lower() in {"1", "true", "yes"}
 
     @property
     def ai_mode(self) -> str:

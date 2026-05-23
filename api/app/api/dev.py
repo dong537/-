@@ -26,6 +26,8 @@ def get_runtime_config() -> dict:
         "store_persistence_error": store.persistence_error,
         "text_model": settings.openai_text_model or "mock",
         "vision_model": settings.openai_vision_model or "mock",
+        "insta360_sdk_demo_path": settings.insta360_sdk_demo_path,
+        "insta360_native_bridge_enabled": settings.insta360_native_bridge_enabled,
         "counts": {
             "trips": len(store.trips),
             "media": len(store.media),

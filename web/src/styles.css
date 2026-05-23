@@ -50,7 +50,9 @@ button:disabled {
 .score-card,
 .warning-list p,
 .device-card p,
-.goal-card p {
+.goal-card p,
+.sdk-status-card,
+.sdk-plan-head {
   display: flex;
   align-items: center;
 }
@@ -659,6 +661,134 @@ input:focus {
   color: #607069;
   font-size: 13px;
   line-height: 1.45;
+}
+
+.sdk-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.sdk-status-card {
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
+  background: #f8faf6;
+  border: 1px solid #dfe6da;
+  border-radius: 8px;
+}
+
+.sdk-status-card span,
+.sdk-status-card strong {
+  display: block;
+}
+
+.sdk-status-card span {
+  color: #68766f;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sdk-status-card strong {
+  margin-top: 2px;
+  color: #20372f;
+  font-size: 14px;
+}
+
+.sdk-demo-ref {
+  padding: 10px 12px;
+  background: #fff8df;
+  border: 1px solid #ead28c;
+  border-radius: 8px;
+}
+
+.sdk-demo-ref p {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0;
+  color: #6f541b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sdk-demo-ref span {
+  color: #24604b;
+}
+
+.sdk-demo-ref small {
+  display: block;
+  margin-top: 6px;
+  color: #75623b;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.sdk-operation-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.sdk-operation-tabs button {
+  min-height: 36px;
+  color: #405149;
+  background: #f8faf6;
+  border: 1px solid #d9e4dc;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sdk-operation-tabs button.is-active {
+  color: #ffffff;
+  background: #204d3d;
+  border-color: #204d3d;
+}
+
+.sdk-plan {
+  display: grid;
+  gap: 8px;
+}
+
+.sdk-plan-head {
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sdk-plan-head strong {
+  color: #20372f;
+}
+
+.sdk-plan-head span {
+  color: #24604b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sdk-plan p {
+  margin: 0;
+  color: #607069;
+  font-size: 12px;
+}
+
+.sdk-plan article {
+  display: grid;
+  gap: 4px;
+  padding: 9px 10px;
+  background: #f8faf6;
+  border: 1px solid #dfe6da;
+  border-radius: 8px;
+}
+
+.sdk-plan b {
+  color: #20372f;
+  font-size: 12px;
+}
+
+.sdk-plan article span {
+  color: #607069;
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 .system-banner,

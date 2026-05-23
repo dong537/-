@@ -14,3 +14,9 @@ api/data/state.json
 .env
 .env.local
 *.tsbuildinfo
+
+# Insta360 SDK vendor demo/reference files stay local only.
+sdk_demo_1.9.11/
+**/sdk_demo_1.9.11/
+*.apk
+*.aab

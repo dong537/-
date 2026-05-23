@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 from statistics import mean
 from typing import Any
 
+from app.domain.insta360_sdk_bridge import PROVIDER_ID
 from app.domain.store import new_id, now_iso, persist_store, store
 
 DEFAULT_USER_ID = "demo_user"
@@ -206,7 +207,7 @@ def bind_device(payload: dict[str, Any]) -> dict[str, Any]:
         "user_id": user_id,
         "device_name": payload["device_name"],
         "device_model": payload["device_model"],
-        "provider": "insta360_mock_sdk",
+        "provider": PROVIDER_ID,
         "connection_type": payload["connection_type"],
         "status": "online",
         "battery_percent": 86,

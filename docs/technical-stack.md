@@ -46,6 +46,7 @@ Local MVP Storage
 | 状态管理 | Zustand | 旅行、路线、素材、导出结果、故事事件 |
 | 图标 | Lucide React | 按钮、状态、时间线图标 |
 | 地图 | 高德 JS API / Demo Map | 有 `VITE_AMAP_WEB_KEY` 时加载高德，否则使用演示地图 |
+| 影石 SDK 状态 | Insta360 SDK Bridge API | 展示 SDK v1.9.11 接入状态、流程指令和本地 demo 引用状态 |
 | 语音 | Web Speech API | 浏览器端播报 AI 伴游讲解 |
 | 样式 | CSS | 轻量响应式布局，无外部 UI 框架 |
 | E2E 测试 | Playwright | 验证一键演示、运行状态和最近演示恢复 |
@@ -78,6 +79,7 @@ Local MVP Storage
 | 测试 | Pytest + FastAPI TestClient | MVP 闭环测试 |
 | HTTP 测试依赖 | HTTPX | TestClient 底层依赖 |
 | 媒体处理 | FFmpeg | 视频抽帧，失败时 fallback 到演示帧 |
+| 相机 SDK Bridge | Insta360 Android SDK v1.9.11 契约 | 后端维护 provider contract，Android 原生层调用 SDK 后回传状态和采集元数据 |
 | 导出 | Python zipfile | 生成 ZIP 素材包 |
 | 存储 | 内存 + 本地文件 | 黑客松 MVP 数据和素材管理 |
 | 容器化 | Docker + Docker Compose | 单机部署、CI 镜像构建验证 |
@@ -91,6 +93,8 @@ Local MVP Storage
 - `api/app/domain/media_service.py`：上传、演示素材、抽帧、精彩标记。
 - `api/app/domain/agent_orchestrator.py`：伴游讲解、自动出片、manifest、ZIP 导出。
 - `api/app/domain/providers.py`：AI/地图 Provider 抽象。
+- `api/app/domain/health_service.py`：体征、设备、采集、行为分析、日报、周报业务逻辑。
+- `api/app/domain/insta360_sdk_bridge.py`：影石 SDK v1.9.11 可提交桥接契约，映射绑定、采集、同步、导出流程。
 - `api/tests/test_mvp_flow.py`：端到端闭环测试。
 
 ## 5. API 能力边界
@@ -264,6 +268,8 @@ npm run test:e2e
 | `OPENAI_VISION_MODEL` | 空 | 视觉模型 |
 | `AMAP_WEB_KEY` | 空 | 高德前端 Key |
 | `AMAP_WEB_SERVICE_KEY` | 空 | 高德 Web Service Key |
+| `INSTA360_SDK_DEMO_PATH` | 空 | 本机影石 SDK demo 路径，仅用于显示/校验，不提交 |
+| `INSTA360_NATIVE_BRIDGE_ENABLED` | `false` | 是否声明 Android 原生桥接层已接入 |
 
 前端：
 

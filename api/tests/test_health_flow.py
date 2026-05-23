@@ -96,9 +96,33 @@ def test_health_demo_flow() -> None:
     body = demo.json()
     assert body["profile"]["profile_id"]
     assert body["device"]["device_model"].startswith("Insta360")
+    assert body["device"]["provider"] == "insta360_android_sdk_v1_9_11_bridge"
     assert len(body["captures"]) == 6
     assert body["today_log"]["behavior_summary"]["total_records"] == 6
     assert body["weekly_report"]["average_overall_score"] > 0
+
+
+def test_insta360_sdk_bridge_status_and_command_plan() -> None:
+    status = client.get("/api/health/insta360/sdk/status")
+    assert status.status_code == 200
+    status_body = status.json()
+    assert status_body["provider"] == "insta360_android_sdk_v1_9_11_bridge"
+    assert status_body["sdk_version"] == "1.9.11"
+    assert status_body["demo_reference"]["committed"] is False
+    assert "capture" in status_body["workflows"]
+    assert {feature["key"] for feature in status_body["features"]} >= {"ble_scan", "capture_control", "album_sync", "media_export"}
+
+    plan = client.get("/api/health/insta360/sdk/command-plan?operation=capture")
+    assert plan.status_code == 200
+    plan_body = plan.json()
+    assert plan_body["operation"] == "capture"
+    assert plan_body["backend_handoff"] == "POST /api/health/captures"
+    all_calls = [call for step in plan_body["steps"] for call in step["sdk_calls"]]
+    assert "startNormalCapture()" in all_calls
+    assert any("startPreviewStream" in call for call in all_calls)
+
+    unsupported = client.get("/api/health/insta360/sdk/command-plan?operation=unsupported")
+    assert unsupported.status_code == 400
 
 
 def test_device_offline_cache_history_and_weekly_pdf() -> None:

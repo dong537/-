@@ -28,6 +28,8 @@ import {
   generateDailyLog,
   generateWeeklyReport,
   getHealthDashboard,
+  getInsta360CommandPlan,
+  getInsta360SdkStatus,
   getRuntimeConfig,
   getHealthTrends,
   resetDemo,
@@ -39,7 +41,15 @@ import {
 } from "./api/client";
 import { SystemStatusPanel } from "./components/SystemStatusPanel";
 import type { RuntimeConfig } from "./api/client";
-import type { CaptureCreatePayload, HealthDashboard, HealthProfilePayload, TrendResponse } from "./types";
+import type {
+  CaptureCreatePayload,
+  HealthDashboard,
+  HealthProfilePayload,
+  Insta360CommandPlan,
+  Insta360SdkOperation,
+  Insta360SdkStatus,
+  TrendResponse
+} from "./types";
 
 const userId = "demo_user";
 
@@ -50,6 +60,13 @@ const sceneOptions = [
   { value: "sitting", label: "久坐办公", icon: Clock3 },
   { value: "sleep", label: "规律睡眠", icon: Moon },
   { value: "outdoor walk", label: "户外放松", icon: Activity }
+];
+
+const sdkOperations: Array<{ value: Insta360SdkOperation; label: string }> = [
+  { value: "bind", label: "绑定" },
+  { value: "capture", label: "采集" },
+  { value: "sync", label: "同步" },
+  { value: "export", label: "导出" }
 ];
 
 const defaultProfile: HealthProfilePayload = {
@@ -107,6 +124,9 @@ export function App() {
   const [profile, setProfile] = useState<HealthProfilePayload>(defaultProfile);
   const [sceneHint, setSceneHint] = useState("breakfast");
   const [trend, setTrend] = useState<TrendResponse | null>(null);
+  const [sdkStatus, setSdkStatus] = useState<Insta360SdkStatus | null>(null);
+  const [sdkPlan, setSdkPlan] = useState<Insta360CommandPlan | null>(null);
+  const [sdkOperation, setSdkOperation] = useState<Insta360SdkOperation>("capture");
 
   const latestMetric = dashboard?.profile?.latest_metric;
   const todayLog = dashboard?.today_log;
@@ -127,6 +147,7 @@ export function App() {
     getRuntimeConfig()
       .then(setRuntime)
       .catch(() => setRuntime(null));
+    refreshSdkStatus("capture");
   }, []);
 
   async function run<T>(message: string, task: () => Promise<T>): Promise<T | undefined> {
@@ -156,6 +177,17 @@ export function App() {
     }
   }
 
+  async function refreshSdkStatus(operation: Insta360SdkOperation = sdkOperation) {
+    try {
+      const [status, plan] = await Promise.all([getInsta360SdkStatus(), getInsta360CommandPlan(operation)]);
+      setSdkStatus(status);
+      setSdkPlan(plan);
+    } catch {
+      setSdkStatus(null);
+      setSdkPlan(null);
+    }
+  }
+
   function updateVital(key: keyof HealthProfilePayload["vital_signs"], value: string) {
     setProfile((current) => ({
       ...current,
@@ -176,7 +208,7 @@ export function App() {
   }
 
   async function handleBindDevice() {
-    await run("正在模拟接入 Insta360 SDK 并绑定设备。", async () => {
+    await run("正在按 Insta360 SDK v1.9.11 桥接契约绑定设备。", async () => {
       await bindHealthDevice({
         user_id: userId,
         device_name: "Insta360 X4",
@@ -187,7 +219,17 @@ export function App() {
         capture_window: "08:00-22:00"
       });
       await refreshDashboard();
+      await refreshSdkStatus("bind");
       setNotice("Insta360 设备已绑定，默认每10分钟自动采集一次。");
+    });
+  }
+
+  async function handleSdkOperationChange(operation: Insta360SdkOperation) {
+    setSdkOperation(operation);
+    await run(`正在加载 Insta360 SDK ${operation} 流程指令。`, async () => {
+      const plan = await getInsta360CommandPlan(operation);
+      setSdkPlan(plan);
+      setNotice(`已加载 ${plan.title} 指令计划，共 ${plan.steps.length} 步。`);
     });
   }
 
@@ -322,7 +364,7 @@ export function App() {
         </div>
         <div className="runtime-strip" title="当前运行模式">
           <span>AI: {runtime?.ai_mode ?? "mock"}</span>
-          <span>Device: {device?.provider ?? "insta360_mock_sdk"}</span>
+          <span>Device: {device?.provider ?? sdkStatus?.provider ?? "insta360_bridge"}</span>
         </div>
         <button className="ghost-button" onClick={handleReset} type="button">
           <RefreshCcw size={18} />
@@ -487,6 +529,63 @@ export function App() {
                 同步缓存
               </button>
             </div>
+          </section>
+
+          <section className="panel-block sdk-panel" data-testid="sdk-panel">
+            <div className="section-heading compact">
+              <div>
+                <p className="eyebrow">SDK Bridge</p>
+                <h2>影石 SDK 接入</h2>
+              </div>
+              <Camera size={20} />
+            </div>
+            <div className="sdk-status-card">
+              <div>
+                <span>SDK</span>
+                <strong>v{sdkStatus?.sdk_version ?? "1.9.11"}</strong>
+              </div>
+              <div>
+                <span>模式</span>
+                <strong>{sdkStatus?.bridge_mode ?? "contract_only"}</strong>
+              </div>
+            </div>
+            <div className="sdk-demo-ref">
+              <p>
+                本地 demo：{sdkStatus?.demo_reference.exists ? "已检测到" : "未检测到"}
+                <span>{sdkStatus?.demo_reference.committed ? "会提交" : "不会提交到 GitHub"}</span>
+              </p>
+              <small>{sdkStatus?.demo_reference.path ?? runtime?.insta360_sdk_demo_path ?? "../sdk_demo_1.9.11"}</small>
+            </div>
+            <div className="sdk-operation-tabs">
+              {sdkOperations.map((operation) => (
+                <button
+                  className={sdkOperation === operation.value ? "is-active" : ""}
+                  disabled={busy}
+                  key={operation.value}
+                  onClick={() => handleSdkOperationChange(operation.value)}
+                  type="button"
+                >
+                  {operation.label}
+                </button>
+              ))}
+            </div>
+            {sdkPlan ? (
+              <div className="sdk-plan">
+                <div className="sdk-plan-head">
+                  <strong>{sdkPlan.title}</strong>
+                  <span>{sdkPlan.recommended_connection}</span>
+                </div>
+                <p>{sdkPlan.backend_handoff}</p>
+                {sdkPlan.steps.slice(0, 4).map((step) => (
+                  <article key={`${sdkPlan.operation}-${step.order}`}>
+                    <b>{step.order}. {step.name}</b>
+                    <span>{step.sdk_calls.slice(0, 2).join(" / ")}</span>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="empty-note">SDK 指令计划加载中。</p>
+            )}
           </section>
         </aside>
 

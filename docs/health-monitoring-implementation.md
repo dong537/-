@@ -69,22 +69,27 @@ web/tests/e2e/mvp-flow.spec.ts
 
 ## Insta360 SDK 接入边界
 
-当前 `health_service.py` 使用 `insta360_mock_sdk` 作为 provider 名称，模拟绑定和采集结果。后续接真实 SDK 时建议替换为独立 provider：
+当前已基于本机 `sdk_demo_1.9.11` 梳理出可提交的 SDK bridge contract，provider 名称为：
 
 ```text
-api/app/domain/insta360_provider.py
+insta360_android_sdk_v1_9_11_bridge
 ```
 
-建议 provider 方法：
+新增文件：
 
-- `discover_devices()`
-- `bind_device(device_id)`
-- `get_device_status(device_id)`
-- `configure_auto_capture(device_id, interval_minutes, capture_window)`
-- `trigger_capture(device_id)`
-- `sync_offline_cache(device_id)`
+```text
+api/app/domain/insta360_sdk_bridge.py
+docs/insta360-sdk-integration.md
+```
 
-业务层只依赖 provider 返回的设备状态和图片元数据，不直接耦合 SDK 细节。
+新增接口：
+
+```text
+GET /api/health/insta360/sdk/status
+GET /api/health/insta360/sdk/command-plan?operation=bind|capture|sync|export|status
+```
+
+业务层只依赖 provider 返回的设备状态和图片元数据，不直接耦合 Android SDK 细节。本机 demo、APK、签名文件和 SDK 二进制不提交到 GitHub。
 
 ## 验证命令
 

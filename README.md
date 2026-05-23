@@ -6,7 +6,7 @@
 
 - 用户基础健康数据录入：BMI、血压、心率、血氧、血糖等。
 - 异常体征提示：血压、血糖、BMI 等超出范围时进入风险提示。
-- Insta360 设备绑定：当前使用 `insta360_mock_sdk` provider，保留真实 SDK 接入边界。
+- Insta360 设备绑定：当前使用 `insta360_android_sdk_v1_9_11_bridge` provider contract，保留真实 SDK 接入边界。
 - 影像采集模拟：支持手动抓拍、自动采集、场景标签选择。
 - AI 行为分析：识别饮食、运动、睡眠、久坐、户外放松等行为。
 - 身心健康评分：输出身体分、心理分、风险标签和个性化建议。
@@ -84,6 +84,7 @@ POST /api/health/demo
 ## 文档
 
 - [健康监测实现说明](docs/health-monitoring-implementation.md)
+- [影石 SDK 接入说明](docs/insta360-sdk-integration.md)
 - [技术栈文档](docs/technical-stack.md)
 - [API 契约](docs/api-contract.md)
 - [部署说明](docs/deployment.md)

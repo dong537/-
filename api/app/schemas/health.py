@@ -132,6 +132,53 @@ class OfflineSyncResponse(BaseModel):
     synced_captures: list[CaptureResponse]
 
 
+class Insta360SdkFeatureResponse(BaseModel):
+    key: str
+    name: str
+    sdk_calls: list[str]
+    demo_files: list[str]
+    project_usage: str
+
+
+class Insta360SdkDemoReferenceResponse(BaseModel):
+    path: str
+    exists: bool
+    committed: bool
+    note: str
+
+
+class Insta360WorkflowStepResponse(BaseModel):
+    order: int
+    name: str
+    sdk_calls: list[str]
+    demo_files: list[str]
+    backend_event: str
+    notes: str
+
+
+class Insta360SdkStatusResponse(BaseModel):
+    provider: str
+    sdk_version: str
+    bridge_mode: str
+    native_bridge_available: bool
+    demo_reference: Insta360SdkDemoReferenceResponse
+    features: list[Insta360SdkFeatureResponse]
+    workflows: list[str]
+    integration_notes: list[str]
+    generated_at: str
+
+
+class Insta360CommandPlanResponse(BaseModel):
+    operation: str
+    provider: str
+    sdk_version: str
+    title: str
+    recommended_connection: str
+    backend_handoff: str
+    safety_checks: list[str]
+    steps: list[Insta360WorkflowStepResponse]
+
+
 class TrendResponse(BaseModel):
     user_id: str
     range_days: int

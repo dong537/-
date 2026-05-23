@@ -11,6 +11,9 @@ import type {
   ExportResponse,
   FrameAsset,
   HealthDashboard,
+  Insta360CommandPlan,
+  Insta360SdkOperation,
+  Insta360SdkStatus,
   HealthProfilePayload,
   HealthProfileResponse,
   MediaAsset,
@@ -59,6 +62,8 @@ export type RuntimeConfig = {
   counts?: Record<string, number>;
   text_model: string;
   vision_model: string;
+  insta360_sdk_demo_path: string;
+  insta360_native_bridge_enabled: boolean;
 };
 
 export type HealthStatus = {
@@ -126,6 +131,14 @@ export async function updateHealthDevice(
 
 export async function syncHealthDevice(deviceId: string) {
   return request<OfflineSyncResponse>(`/api/health/devices/${encodeURIComponent(deviceId)}/sync`, { method: "POST" });
+}
+
+export async function getInsta360SdkStatus() {
+  return request<Insta360SdkStatus>("/api/health/insta360/sdk/status");
+}
+
+export async function getInsta360CommandPlan(operation: Insta360SdkOperation = "capture") {
+  return request<Insta360CommandPlan>(`/api/health/insta360/sdk/command-plan?operation=${encodeURIComponent(operation)}`);
 }
 
 export async function createHealthCapture(payload: CaptureCreatePayload) {
