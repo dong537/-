@@ -23,6 +23,10 @@
 - 存储：MVP 使用本地文件和内存数据
 - 地图：无 Key 时使用演示地图，有 `VITE_AMAP_WEB_KEY` 时前端可加载高德地图
 
+完整技术栈、架构边界和后续扩展见：
+
+- [docs/technical-stack.md](docs/technical-stack.md)
+
 ## 启动方式
 
 推荐一键启动：
