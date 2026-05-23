@@ -10,7 +10,6 @@ from fastapi import HTTPException, UploadFile
 from app.core.config import settings
 from app.domain.store import new_id, now_iso, persist_store, record_event, store
 
-
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg"}
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".m4v", ".webm", ".avi", ".mkv"}
 

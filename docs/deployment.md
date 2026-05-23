@@ -82,6 +82,7 @@ CI 配置：
 - `API tests`
   - Python 3.12
   - 安装 `api/requirements-dev.txt`
+  - 执行 `python -m ruff check app tests`
   - 执行 `python -m pytest -q`
   - 启动本地 Uvicorn 服务
   - 执行 `scripts/smoke-test.ps1`

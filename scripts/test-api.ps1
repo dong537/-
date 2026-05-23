@@ -13,5 +13,6 @@ if (!(Test-Path $Python)) {
 
 Push-Location $ApiDir
 & $Python -m pip install -r requirements-dev.txt
+& $Python -m ruff check app tests
 & $Python -m pytest
 Pop-Location

@@ -7,7 +7,6 @@ from app.domain import store as store_module
 from app.domain.store import reset_store
 from app.main import app
 
-
 client = TestClient(app)
 
 

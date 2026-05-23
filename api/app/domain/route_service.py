@@ -3,7 +3,6 @@ from __future__ import annotations
 from app.domain.providers import get_map_provider
 from app.domain.store import get_trip_events, new_id, now_iso, record_event, store
 
-
 WEST_LAKE_CENTER = {"lng": 120.148, "lat": 30.245}
 
 

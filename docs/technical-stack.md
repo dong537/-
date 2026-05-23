@@ -74,6 +74,7 @@ Local MVP Storage
 | 数据校验 | Pydantic | 请求/响应 Schema |
 | 运行服务 | Uvicorn | 本地 API 服务 |
 | 环境变量 | python-dotenv | `.env` 配置加载 |
+| 静态检查 | Ruff | 导入排序、基础错误和现代 Python 写法检查 |
 | 测试 | Pytest + FastAPI TestClient | MVP 闭环测试 |
 | HTTP 测试依赖 | HTTPX | TestClient 底层依赖 |
 | 媒体处理 | FFmpeg | 视频抽帧，失败时 fallback 到演示帧 |
@@ -202,6 +203,13 @@ docker compose up --build
 ```powershell
 cd api
 .\.venv\Scripts\python -m pytest -q
+```
+
+后端静态检查：
+
+```powershell
+cd api
+.\.venv\Scripts\python -m ruff check app tests
 ```
 
 前端类型检查：

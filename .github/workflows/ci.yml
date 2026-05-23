@@ -27,6 +27,9 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements-dev.txt
 
+      - name: Run lint
+        run: python -m ruff check app tests
+
       - name: Run tests
         run: python -m pytest -q
 

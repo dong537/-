@@ -165,6 +165,8 @@ Copy-Item web\.env.example web\.env
 .\scripts\test-api.ps1
 ```
 
+`scripts\test-api.ps1` 会先执行 Ruff 静态检查，再运行 Pytest。
+
 前端构建：
 
 ```powershell
