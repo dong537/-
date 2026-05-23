@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { CompanionResponse, ExportResponse, FrameAsset, MediaAsset, RoutePlan, TripEvent, UserStatus } from "../types";
+import type { CompanionResponse, ExportResponse, FrameAsset, MediaAsset, RoutePlan, TripDetail, TripEvent, UserStatus } from "../types";
 
 type TripStore = {
   tripId?: string;
@@ -23,6 +23,7 @@ type TripStore = {
   setExportResult: (response: ExportResponse) => void;
   setEvents: (events: TripEvent[]) => void;
   setUserStatus: (status: UserStatus) => void;
+  hydrateFromDetail: (detail: TripDetail) => void;
   reset: () => void;
 };
 
@@ -60,5 +61,19 @@ export const useTripStore = create<TripStore>((set) => ({
   setExportResult: (exportResult) => set({ exportResult }),
   setEvents: (events) => set({ events }),
   setUserStatus: (userStatus) => set({ userStatus }),
+  hydrateFromDetail: (detail) =>
+    set({
+      tripId: typeof detail.trip.id === "string" ? detail.trip.id : undefined,
+      destination: typeof detail.trip.destination === "string" ? detail.trip.destination : initialState.destination,
+      durationMinutes: typeof detail.trip.duration_minutes === "number" ? detail.trip.duration_minutes : initialState.durationMinutes,
+      preferences: Array.isArray(detail.trip.preferences) ? detail.trip.preferences.filter((item): item is string => typeof item === "string") : initialState.preferences,
+      route: detail.route ?? undefined,
+      media: detail.media.at(-1),
+      frames: detail.frames,
+      exportResult: detail.exports.at(-1),
+      events: detail.events,
+      companion: undefined,
+      userStatus: initialState.userStatus
+    }),
   reset: () => set({ ...initialState })
 }));

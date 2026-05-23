@@ -1,10 +1,15 @@
 from fastapi import APIRouter, HTTPException
 
-from app.domain.route_service import create_trip, generate_initial_route, get_trip_detail, reroute
+from app.domain.route_service import create_trip, generate_initial_route, get_trip_detail, list_trip_summaries, reroute
 from app.domain.store import store
-from app.schemas.trip import CreateTripRequest, RerouteRequest, RoutePlan, TripDetail, TripResponse
+from app.schemas.trip import CreateTripRequest, RerouteRequest, RoutePlan, TripDetail, TripResponse, TripSummary
 
 router = APIRouter(prefix="/api/trips", tags=["trips"])
+
+
+@router.get("", response_model=list[TripSummary])
+def list_trips_endpoint(limit: int = 10) -> list[dict]:
+    return list_trip_summaries(limit=max(1, min(limit, 50)))
 
 
 @router.post("", response_model=TripResponse)

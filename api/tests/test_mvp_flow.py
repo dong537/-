@@ -120,6 +120,16 @@ def test_full_demo_flow() -> None:
         assert "manifest.json" in names
         assert len([name for name in names if name.startswith("selected_frames/")]) >= 3
 
+    trips = client.get("/api/trips")
+    assert trips.status_code == 200
+    summary = trips.json()[0]
+    assert summary["trip_id"] == trip_id
+    assert summary["route_ready"] is True
+    assert summary["media_count"] == 1
+    assert summary["frame_count"] >= 3
+    assert summary["export_count"] == 1
+    assert summary["event_count"] >= 6
+
 
 def test_reset_demo_state() -> None:
     trip = client.post(

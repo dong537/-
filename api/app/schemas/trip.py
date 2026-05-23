@@ -19,6 +19,20 @@ class TripResponse(BaseModel):
     status: str
 
 
+class TripSummary(BaseModel):
+    trip_id: str
+    destination: str
+    duration_minutes: int
+    status: str
+    created_at: str
+    updated_at: str
+    route_ready: bool
+    media_count: int
+    frame_count: int
+    export_count: int
+    event_count: int
+
+
 class RouteNode(BaseModel):
     id: str
     name: str

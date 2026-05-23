@@ -1,4 +1,4 @@
-import type { CompanionResponse, ExportManifest, ExportResponse, FrameAsset, MediaAsset, RoutePlan, TripDetail, UserStatus } from "../types";
+import type { CompanionResponse, ExportManifest, ExportResponse, FrameAsset, MediaAsset, RoutePlan, TripDetail, TripSummary, UserStatus } from "../types";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8010";
 
@@ -75,6 +75,10 @@ export async function createTrip(payload: {
     method: "POST",
     body: JSON.stringify(payload)
   });
+}
+
+export async function listTrips(limit = 5) {
+  return request<TripSummary[]>(`/api/trips?limit=${limit}`);
 }
 
 export async function generateRoute(tripId: string) {

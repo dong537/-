@@ -140,4 +140,18 @@ export type TripDetail = {
   events: TripEvent[];
 };
 
+export type TripSummary = {
+  trip_id: string;
+  destination: string;
+  duration_minutes: number;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  route_ready: boolean;
+  media_count: number;
+  frame_count: number;
+  export_count: number;
+  event_count: number;
+};
+
 export type UserStatus = "normal" | "tired" | "photo" | "food" | "short_time" | "quiet";

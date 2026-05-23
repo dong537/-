@@ -59,6 +59,7 @@ Local MVP Storage
 - `web/src/components/OutputPanel.tsx`：自动出片、文案复制、ZIP 导出。
 - `web/src/components/StoryTimeline.tsx`：旅程事件故事线。
 - `web/src/components/SystemStatusPanel.tsx`：展示 API、ready checks、上传限制、状态快照和对象计数。
+- `web/src/components/ResumeTripPanel.tsx`：读取最近行程并恢复到当前工作台。
 
 ## 4. 后端技术栈
 
@@ -103,6 +104,7 @@ Local MVP Storage
 | 运行配置 | `GET /api/dev/config` |
 | 重置演示数据 | `POST /api/dev/reset` |
 | 创建旅行 | `POST /api/trips` |
+| 最近旅行列表 | `GET /api/trips` |
 | 查询旅行详情 | `GET /api/trips/{trip_id}` |
 | 生成路线 | `POST /api/trips/{trip_id}/route` |
 | 状态改路线 | `POST /api/trips/{trip_id}/reroute` |

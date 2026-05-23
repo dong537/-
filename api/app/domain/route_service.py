@@ -166,3 +166,26 @@ def get_trip_detail(trip_id: str) -> dict:
     frames = [item for item in store.frames.values() if item["trip_id"] == trip_id]
     exports = [item for item in store.exports.values() if item["trip_id"] == trip_id]
     return {"trip": trip, "route": route, "media": media, "frames": frames, "exports": exports, "events": get_trip_events(trip_id)}
+
+
+def list_trip_summaries(limit: int = 10) -> list[dict]:
+    trips = sorted(store.trips.values(), key=lambda item: item.get("updated_at") or item.get("created_at") or "", reverse=True)
+    summaries = []
+    for trip in trips[:limit]:
+        trip_id = trip["id"]
+        summaries.append(
+            {
+                "trip_id": trip_id,
+                "destination": trip["destination"],
+                "duration_minutes": trip["duration_minutes"],
+                "status": trip["status"],
+                "created_at": trip["created_at"],
+                "updated_at": trip["updated_at"],
+                "route_ready": trip_id in store.routes,
+                "media_count": len([item for item in store.media.values() if item["trip_id"] == trip_id]),
+                "frame_count": len([item for item in store.frames.values() if item["trip_id"] == trip_id]),
+                "export_count": len([item for item in store.exports.values() if item["trip_id"] == trip_id]),
+                "event_count": len([item for item in store.events.values() if item["trip_id"] == trip_id]),
+            }
+        )
+    return summaries

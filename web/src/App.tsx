@@ -18,12 +18,13 @@ import {
 import { MapView } from "./components/MapView";
 import { MediaPanel } from "./components/MediaPanel";
 import { OutputPanel } from "./components/OutputPanel";
+import { ResumeTripPanel } from "./components/ResumeTripPanel";
 import { RouteTimeline } from "./components/RouteTimeline";
 import { StoryTimeline } from "./components/StoryTimeline";
 import { StatusActions } from "./components/StatusActions";
 import { SystemStatusPanel } from "./components/SystemStatusPanel";
 import { useTripStore } from "./store/useTripStore";
-import type { FrameAsset, UserStatus } from "./types";
+import type { FrameAsset, TripDetail, UserStatus } from "./types";
 
 const preferenceOptions = ["风景", "拍视频", "轻松", "美食", "人文", "小众"];
 
@@ -66,6 +67,11 @@ export function App() {
     if (!tripId) return;
     const detail = await getTripDetail(tripId);
     store.setEvents(detail.events);
+  }
+
+  function handleResumeTrip(_tripId: string, detail: TripDetail) {
+    store.hydrateFromDetail(detail);
+    setNotice("已恢复最近演示，可继续改路线、讲解或导出。");
   }
 
   async function handleCreateTrip(event: FormEvent<HTMLFormElement>) {
@@ -339,6 +345,10 @@ export function App() {
           <div className="divider" />
 
           <SystemStatusPanel />
+
+          <div className="divider" />
+
+          <ResumeTripPanel activeTripId={store.tripId} busy={busy} onResume={handleResumeTrip} />
 
           <div className="divider" />
 

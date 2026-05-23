@@ -140,6 +140,30 @@ http://127.0.0.1:8010
 - `duration_minutes` 取值范围为 `15-720`。
 - 创建成功后会记录 `trip_created` 故事事件。
 
+### `GET /api/trips?limit=10`
+
+返回最近更新的旅行摘要，用于前端恢复上一次演示。
+
+响应示例：
+
+```json
+[
+  {
+    "trip_id": "trip_xxx",
+    "destination": "杭州西湖附近",
+    "duration_minutes": 120,
+    "status": "route_ready",
+    "created_at": "2026-05-23T00:00:00+00:00",
+    "updated_at": "2026-05-23T00:05:00+00:00",
+    "route_ready": true,
+    "media_count": 1,
+    "frame_count": 5,
+    "export_count": 1,
+    "event_count": 8
+  }
+]
+```
+
 ### `GET /api/trips/{trip_id}`
 
 查询旅行详情，包含旅行、路线、素材、帧、导出结果和故事事件。

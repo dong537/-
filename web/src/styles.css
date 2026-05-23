@@ -575,7 +575,8 @@ input:focus {
   line-height: 1.45;
 }
 
-.system-panel {
+.system-panel,
+.resume-panel {
   padding: 14px;
   background: #f8faf6;
   border: 1px solid #dfe6da;
@@ -701,6 +702,82 @@ input:focus {
 .count-row strong {
   color: #20372f;
   font-size: 13px;
+}
+
+.small-muted {
+  margin: 0;
+  color: #6b7a72;
+  font-size: 13px;
+}
+
+.resume-list {
+  display: grid;
+  gap: 8px;
+}
+
+.resume-item {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+  text-align: left;
+  color: #21332b;
+  background: #ffffff;
+  border: 1px solid #dfe6da;
+  border-radius: 6px;
+}
+
+.resume-item.is-active {
+  border-color: #2d604b;
+  box-shadow: 0 0 0 3px rgba(45, 96, 75, 0.12);
+}
+
+.resume-item strong,
+.resume-item span {
+  display: block;
+}
+
+.resume-item strong {
+  overflow: hidden;
+  color: #20372f;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resume-item span {
+  margin-top: 2px;
+  color: #6b7a72;
+  font-size: 11px;
+}
+
+.resume-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #2d604b;
+}
+
+.resume-meta span {
+  margin: 0;
+  color: inherit;
+  font-weight: 700;
+}
+
+.resume-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.resume-counts span {
+  margin: 0;
+  padding: 4px 6px;
+  color: #2d604b;
+  background: #eaf2e8;
+  border-radius: 999px;
+  font-weight: 700;
 }
 
 .media-panel,
