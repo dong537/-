@@ -1,405 +1,566 @@
-import { Compass, FastForward, Loader2, Map, Play, RotateCcw, Sparkles } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  BatteryMedium,
+  Camera,
+  CheckCircle2,
+  Clock3,
+  Dumbbell,
+  FastForward,
+  FileText,
+  HeartPulse,
+  Loader2,
+  Moon,
+  RefreshCcw,
+  Salad,
+  ShieldCheck,
+  Smartphone,
+  Sparkles,
+  TrendingUp,
+  Wifi
+} from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
-  analyzeCompanion,
-  createDemoMedia,
-  createExport,
-  createTrip,
-  extractFrames,
-  generateRoute,
-  getExportBundle,
+  bindHealthDevice,
+  createHealthCapture,
+  generateDailyLog,
+  generateWeeklyReport,
+  getHealthDashboard,
   getRuntimeConfig,
-  getTripDetail,
-  markFrame,
-  rerouteTrip,
   resetDemo,
-  uploadMedia
+  runHealthDemo,
+  saveHealthProfile
 } from "./api/client";
-import { MapView } from "./components/MapView";
-import { MediaPanel } from "./components/MediaPanel";
-import { OutputPanel } from "./components/OutputPanel";
-import { ResumeTripPanel } from "./components/ResumeTripPanel";
-import { RouteTimeline } from "./components/RouteTimeline";
-import { StoryTimeline } from "./components/StoryTimeline";
-import { StatusActions } from "./components/StatusActions";
 import { SystemStatusPanel } from "./components/SystemStatusPanel";
-import { useTripStore } from "./store/useTripStore";
-import type { FrameAsset, TripDetail, UserStatus } from "./types";
+import type { CaptureCreatePayload, HealthDashboard, HealthProfilePayload, RuntimeConfig } from "./types";
 
-const preferenceOptions = ["风景", "拍视频", "轻松", "美食", "人文", "小众"];
+const userId = "demo_user";
+
+const sceneOptions = [
+  { value: "breakfast", label: "规律早餐", icon: Salad },
+  { value: "late snack", label: "夜间加餐", icon: AlertTriangle },
+  { value: "workout", label: "运动健身", icon: Dumbbell },
+  { value: "sitting", label: "久坐办公", icon: Clock3 },
+  { value: "sleep", label: "规律睡眠", icon: Moon },
+  { value: "outdoor walk", label: "户外放松", icon: Activity }
+];
+
+const defaultProfile: HealthProfilePayload = {
+  user_id: userId,
+  name: "Demo User",
+  age: 32,
+  gender: "unspecified",
+  vital_signs: {
+    height_cm: 172,
+    weight_kg: 76,
+    bmi: null,
+    systolic_bp: 132,
+    diastolic_bp: 86,
+    heart_rate: 82,
+    blood_oxygen: 98,
+    blood_glucose: 7.2,
+    blood_lipid: 5.4,
+    uric_acid: 398,
+    notes: "亚健康作息，关注血糖、体重和久坐压力。"
+  }
+};
+
+function scoreTone(score?: number | null) {
+  if (!score) return "muted";
+  if (score >= 85) return "good";
+  if (score >= 70) return "warn";
+  return "risk";
+}
+
+function formatTime(value?: string | null) {
+  if (!value) return "--";
+  return new Intl.DateTimeFormat("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(value));
+}
+
+function categoryName(category: string) {
+  const names: Record<string, string> = {
+    diet: "饮食",
+    exercise: "运动",
+    sleep: "睡眠",
+    daily: "日常"
+  };
+  return names[category] ?? category;
+}
 
 export function App() {
-  const store = useTripStore();
+  const [dashboard, setDashboard] = useState<HealthDashboard | null>(null);
+  const [runtime, setRuntime] = useState<RuntimeConfig | null>(null);
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState("准备好后，AI 会先帮你规划一条可演示路线。");
-  const [runtime, setRuntime] = useState<{ ai_provider: string; ai_mode?: string; map_provider: string; map_mode?: string }>();
+  const [notice, setNotice] = useState("录入体征并绑定 Insta360 相机后，即可开始健康影像采集。");
+  const [profile, setProfile] = useState<HealthProfilePayload>(defaultProfile);
+  const [sceneHint, setSceneHint] = useState("breakfast");
 
-  const canShowRoute = Boolean(store.route);
-  const selectedFrame = useMemo(() => store.frames[0], [store.frames]);
+  const latestMetric = dashboard?.profile?.latest_metric;
+  const todayLog = dashboard?.today_log;
+  const weeklyReport = dashboard?.weekly_report;
+  const device = dashboard?.device;
+
+  const scoreCards = useMemo(
+    () => [
+      { label: "综合健康分", value: todayLog?.overall_score, icon: HeartPulse },
+      { label: "身体维度", value: todayLog?.body_score, icon: Activity },
+      { label: "心理维度", value: todayLog?.mental_score, icon: Sparkles }
+    ],
+    [todayLog]
+  );
 
   useEffect(() => {
+    refreshDashboard();
     getRuntimeConfig()
-      .then((config) =>
-        setRuntime({
-          ai_provider: config.ai_provider,
-          ai_mode: config.ai_mode,
-          map_provider: config.map_provider,
-          map_mode: config.map_mode
-        })
-      )
-      .catch(() => setRuntime({ ai_provider: "offline", map_provider: "offline" }));
+      .then(setRuntime)
+      .catch(() => setRuntime(null));
   }, []);
 
   async function run<T>(message: string, task: () => Promise<T>): Promise<T | undefined> {
     setBusy(true);
     setNotice(message);
     try {
-      return await task();
+      const result = await task();
+      return result;
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "操作失败，请稍后再试。");
+      setNotice(error instanceof Error ? error.message : "操作失败，请稍后重试。");
       return undefined;
     } finally {
       setBusy(false);
     }
   }
 
-  async function refreshTripEvents(tripId = store.tripId) {
-    if (!tripId) return;
-    const detail = await getTripDetail(tripId);
-    store.setEvents(detail.events);
+  async function refreshDashboard() {
+    const data = await getHealthDashboard(userId);
+    setDashboard(data);
+    if (data.profile?.latest_metric) {
+      setProfile({
+        user_id: data.profile.user_id,
+        name: data.profile.name,
+        age: data.profile.age,
+        gender: data.profile.gender,
+        vital_signs: data.profile.latest_metric.vital_signs
+      });
+    }
   }
 
-  function handleResumeTrip(_tripId: string, detail: TripDetail) {
-    store.hydrateFromDetail(detail);
-    setNotice("已恢复最近演示，可继续改路线、讲解或导出。");
+  function updateVital(key: keyof HealthProfilePayload["vital_signs"], value: string) {
+    setProfile((current) => ({
+      ...current,
+      vital_signs: {
+        ...current.vital_signs,
+        [key]: value === "" ? null : Number(value)
+      }
+    }));
   }
 
-  async function handleCreateTrip(event: FormEvent<HTMLFormElement>) {
+  async function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    await run("正在生成路线，地图和 AI 正在对齐节奏。", async () => {
-      const trip = await createTrip({
-        destination: store.destination,
-        duration_minutes: store.durationMinutes,
-        preferences: store.preferences,
-        use_panorama_camera: true
+    await run("正在保存体征数据并执行医学范围校验。", async () => {
+      await saveHealthProfile(profile);
+      await refreshDashboard();
+      setNotice("体征数据已保存，异常指标会进入日报和周报评估。");
+    });
+  }
+
+  async function handleBindDevice() {
+    await run("正在模拟接入 Insta360 SDK 并绑定设备。", async () => {
+      await bindHealthDevice({
+        user_id: userId,
+        device_name: "Insta360 X4",
+        device_model: "Insta360 X4",
+        connection_type: "mock",
+        auto_capture_enabled: true,
+        capture_interval_minutes: 10,
+        capture_window: "08:00-22:00"
       });
-      store.setTripId(trip.trip_id);
-      const route = await generateRoute(trip.trip_id);
-      store.setRoute(route);
-      await refreshTripEvents(trip.trip_id);
-      setNotice("路线已生成。你可以点击状态按钮，让 AI 现场改路线。");
+      await refreshDashboard();
+      setNotice("Insta360 设备已绑定，默认每10分钟自动采集一次。");
     });
   }
 
-  async function handleStatus(status: UserStatus) {
-    if (!store.tripId) return;
-    store.setUserStatus(status);
-    await run("正在根据你的状态重新规划路线。", async () => {
-      const route = await rerouteTrip(store.tripId!, status);
-      store.setRoute(route);
-      await refreshTripEvents();
-      setNotice(route.change_summary ?? "路线已更新。");
-    });
-  }
-
-  async function handleUpload(file: File) {
-    if (!store.tripId) return;
-    await run("正在上传并抽取候选帧。", async () => {
-      const media = await uploadMedia(store.tripId!, file);
-      store.setMedia(media);
-      const response = await extractFrames(media.media_id);
-      store.setFrames(response.frames);
-      await refreshTripEvents();
-      setNotice(`已生成 ${response.frames.length} 张候选帧。`);
-    });
-  }
-
-  async function handleDemoMedia() {
-    if (!store.tripId) return;
-    await run("正在准备演示全景素材。", async () => {
-      const media = await createDemoMedia(store.tripId!);
-      store.setMedia(media);
-      const response = await extractFrames(media.media_id);
-      store.setFrames(response.frames);
-      await refreshTripEvents();
-      setNotice("演示素材已就绪，可以生成伴游讲解。");
-    });
-  }
-
-  async function handleAnalyze(frameId?: string) {
-    if (!store.tripId) return;
-    await run("AI 正在观察当前画面。", async () => {
-      const response = await analyzeCompanion(store.tripId!, {
-        frame_id: frameId ?? selectedFrame?.frame_id,
-        route_node_id: store.route?.nodes[0]?.id,
-        user_status: store.userStatus
+  async function handleCapture(mode: CaptureCreatePayload["capture_mode"]) {
+    await run(mode === "manual" ? "正在执行手动抓拍并优先分析。" : "正在模拟自动定时采集。", async () => {
+      await createHealthCapture({
+        user_id: userId,
+        device_id: device?.device_id,
+        capture_mode: mode,
+        scene_hint: sceneHint
       });
-      store.setCompanion(response);
-      await refreshTripEvents();
-      setNotice("伴游讲解已生成。");
+      await refreshDashboard();
+      setNotice("影像已完成 AI 场景识别、行为拆解和身心健康评分。");
     });
   }
 
-  async function handleMarkFrame(frame: FrameAsset) {
-    await run(frame.marked ? "正在取消精彩标记。" : "正在标记精彩瞬间。", async () => {
-      const updated = await markFrame(frame.frame_id, !frame.marked);
-      store.updateFrame(updated);
-      await refreshTripEvents();
-      setNotice(updated.marked ? "已标记精彩瞬间，自动出片会优先考虑它。" : "已取消精彩标记。");
+  async function handleDaily() {
+    await run("正在生成今日健康日志。", async () => {
+      await generateDailyLog(userId);
+      await refreshDashboard();
+      setNotice("今日健康日志已生成，包含行为汇总、异常标记和风险提示。");
     });
   }
 
-  async function handleCreateExport() {
-    if (!store.tripId) return;
-    await run("正在精选图片并生成旅行文案。", async () => {
-      const response = await createExport(store.tripId!);
-      store.setExportResult(response);
-      await refreshTripEvents();
-      setNotice("自动出片结果已生成。");
+  async function handleWeekly() {
+    await run("正在生成周度健康报告。", async () => {
+      await generateWeeklyReport(userId);
+      await refreshDashboard();
+      setNotice("周度健康报告已生成，包含趋势、评估和下周目标。");
     });
   }
 
-  async function handleRunDemo() {
-    await run("正在一键跑通演示闭环。", async () => {
+  async function handleDemo() {
+    await run("正在一键跑通 PRD 演示闭环。", async () => {
       await resetDemo();
-      store.reset();
-      setNotice("Step 1/5：创建旅行并生成路线。");
-      const trip = await createTrip({
-        destination: "杭州西湖附近",
-        duration_minutes: 120,
-        preferences: ["风景", "拍视频", "轻松"],
-        use_panorama_camera: true
-      });
-      store.setTripId(trip.trip_id);
-      const route = await generateRoute(trip.trip_id);
-      store.setRoute(route);
-
-      setNotice("Step 2/5：模拟用户状态变化并改路线。");
-      store.setUserStatus("tired");
-      const rerouted = await rerouteTrip(trip.trip_id, "tired");
-      store.setRoute(rerouted);
-
-      setNotice("Step 3/5：准备演示素材并标记精彩瞬间。");
-      const media = await createDemoMedia(trip.trip_id);
-      store.setMedia(media);
-      const frameResponse = await extractFrames(media.media_id);
-      let frames = frameResponse.frames;
-      if (frames[1]) {
-        const marked = await markFrame(frames[1].frame_id, true);
-        frames = frames.map((frame) => (frame.frame_id === marked.frame_id ? marked : frame));
-      }
-      store.setFrames(frames);
-
-      setNotice("Step 4/5：生成 AI 伴游讲解。");
-      const companion = await analyzeCompanion(trip.trip_id, {
-        frame_id: frames[1]?.frame_id ?? frames[0]?.frame_id,
-        route_node_id: rerouted.nodes[0]?.id,
-        user_status: "tired"
-      });
-      store.setCompanion(companion);
-
-      setNotice("Step 5/5：生成自动出片结果。");
-      const exportResult = await createExport(trip.trip_id);
-      store.setExportResult(exportResult);
-      await refreshTripEvents(trip.trip_id);
-      setNotice("一键演示已完成：路线、改路线、伴游讲解、精彩标记和自动出片都已生成。");
+      await runHealthDemo(userId);
+      await refreshDashboard();
+      setNotice("演示闭环完成：体征录入、设备绑定、影像采集、AI分析、日报和周报均已生成。");
     });
-  }
-
-  async function handleDownloadManifest(exportId: string) {
-    await run("正在生成可下载素材包。", async () => {
-      const blob = await getExportBundle(exportId);
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${exportId}-bundle.zip`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-      setNotice("ZIP 素材包已下载，包含 manifest 和精选帧。");
-    });
-  }
-
-  async function handleCopyText(text: string) {
-    await run("正在复制发布文案。", async () => {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(text);
-      } else {
-        const textarea = document.createElement("textarea");
-        textarea.value = text;
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand("copy");
-        textarea.remove();
-      }
-      setNotice("发布文案已复制。");
-    });
-  }
-
-  function togglePreference(option: string) {
-    const next = store.preferences.includes(option) ? store.preferences.filter((item) => item !== option) : [...store.preferences, option];
-    store.setTripInput({ destination: store.destination, durationMinutes: store.durationMinutes, preferences: next });
   }
 
   async function handleReset() {
-    await run("正在重置演示状态。", async () => {
+    await run("正在重置健康监测演示数据。", async () => {
       await resetDemo();
-      store.reset();
-      setNotice("演示状态已重置，可以重新开始。");
+      setDashboard(await getHealthDashboard(userId));
+      setProfile(defaultProfile);
+      setNotice("演示数据已重置，可以重新开始。");
     });
   }
 
   return (
-    <main className="app-shell">
+    <main className="app-shell health-app">
       <header className="topbar">
         <div className="brand">
-          <Compass size={24} />
+          <HeartPulse size={24} />
           <div>
-            <strong>Panorama Companion</strong>
-            <span>AI 全景旅行伴游</span>
+            <strong>智能影像健康监测系统</strong>
+            <span>Insta360 + AI 行为分析 + 身心健康周报</span>
           </div>
         </div>
         <div className="runtime-strip" title="当前运行模式">
-          <span>AI: {runtime?.ai_provider ?? "..."} / {runtime?.ai_mode ?? "..."}</span>
-          <span>Map: {runtime?.map_provider ?? "..."} / {runtime?.map_mode ?? "..."}</span>
+          <span>AI: {runtime?.ai_mode ?? "mock"}</span>
+          <span>Device: {device?.provider ?? "insta360_mock_sdk"}</span>
         </div>
         <button className="ghost-button" onClick={handleReset} type="button">
-          <RotateCcw size={18} />
+          <RefreshCcw size={18} />
           重置
         </button>
       </header>
 
-      <section className="hero">
+      <section className="health-hero">
         <div>
-          <p className="eyebrow">Hackathon MVP</p>
-          <h1>让地图、全景画面和 AI 一起陪你走完一段 City Walk</h1>
+          <p className="eyebrow">Health Imaging MVP</p>
+          <h1>用全景影像还原日常行为，把饮食、运动、作息变成可追踪的健康建议。</h1>
         </div>
         <div className="hero-actions">
-          <button className="demo-run-button" data-testid="run-demo-button" disabled={busy} onClick={handleRunDemo} type="button">
-            <FastForward size={18} />
+          <button className="demo-run-button" data-testid="run-demo-button" disabled={busy} onClick={handleDemo} type="button">
+            {busy ? <Loader2 className="spin" size={18} /> : <FastForward size={18} />}
             一键演示
           </button>
           <div className="status-pill">
-            {busy ? <Loader2 className="spin" size={18} /> : <Sparkles size={18} />}
+            {busy ? <Loader2 className="spin" size={18} /> : <ShieldCheck size={18} />}
             <span data-testid="notice-text">{notice}</span>
           </div>
         </div>
       </section>
 
-      <div className="workspace">
-        <aside className="control-panel">
-          <form onSubmit={handleCreateTrip}>
-            <div className="section-heading">
+      <section className="score-grid" data-testid="score-grid">
+        {scoreCards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <article className={`score-card is-${scoreTone(card.value)}`} key={card.label}>
               <div>
-                <p className="eyebrow">Step 1</p>
-                <h2>旅行目标</h2>
+                <span>{card.label}</span>
+                <strong>{card.value ?? "--"}</strong>
               </div>
-              <button className="primary-button" disabled={busy} type="submit">
-                <Play size={18} />
-                生成路线
-              </button>
-            </div>
-            <label>
-              想去哪里
-              <input
-                onChange={(event) =>
-                  store.setTripInput({
-                    destination: event.target.value,
-                    durationMinutes: store.durationMinutes,
-                    preferences: store.preferences
-                  })
-                }
-                value={store.destination}
-              />
-            </label>
-            <label>
-              想玩多久
-              <input
-                min={15}
-                onChange={(event) =>
-                  store.setTripInput({
-                    destination: store.destination,
-                    durationMinutes: Number(event.target.value),
-                    preferences: store.preferences
-                  })
-                }
-                type="number"
-                value={store.durationMinutes}
-              />
-            </label>
-            <div>
-              <span className="field-title">偏好</span>
-              <div className="chip-grid">
-                {preferenceOptions.map((option) => (
-                  <button className={store.preferences.includes(option) ? "chip is-active" : "chip"} key={option} onClick={() => togglePreference(option)} type="button">
-                    {option}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </form>
+              <Icon size={28} />
+            </article>
+          );
+        })}
+        <article className="score-card">
+          <div>
+            <span>今日采集</span>
+            <strong>{dashboard?.status.capture_count ?? 0}</strong>
+          </div>
+          <Camera size={28} />
+        </article>
+      </section>
 
-          <div className="divider" />
-
+      <div className="health-workspace">
+        <aside className="health-sidebar">
           <SystemStatusPanel />
 
-          <div className="divider" />
+          <section className="panel-block">
+            <div className="section-heading compact">
+              <div>
+                <p className="eyebrow">Step 1</p>
+                <h2>基础体征</h2>
+              </div>
+              <HeartPulse size={20} />
+            </div>
+            <form className="vital-form" onSubmit={handleProfileSubmit}>
+              <label>
+                姓名
+                <input value={profile.name} onChange={(event) => setProfile({ ...profile, name: event.target.value })} />
+              </label>
+              <div className="form-pair">
+                <label>
+                  年龄
+                  <input min={1} max={120} type="number" value={profile.age} onChange={(event) => setProfile({ ...profile, age: Number(event.target.value) })} />
+                </label>
+                <label>
+                  身高 cm
+                  <input type="number" value={profile.vital_signs.height_cm} onChange={(event) => updateVital("height_cm", event.target.value)} />
+                </label>
+              </div>
+              <div className="form-pair">
+                <label>
+                  体重 kg
+                  <input type="number" value={profile.vital_signs.weight_kg} onChange={(event) => updateVital("weight_kg", event.target.value)} />
+                </label>
+                <label>
+                  心率
+                  <input type="number" value={profile.vital_signs.heart_rate} onChange={(event) => updateVital("heart_rate", event.target.value)} />
+                </label>
+              </div>
+              <div className="form-pair">
+                <label>
+                  高压
+                  <input type="number" value={profile.vital_signs.systolic_bp} onChange={(event) => updateVital("systolic_bp", event.target.value)} />
+                </label>
+                <label>
+                  低压
+                  <input type="number" value={profile.vital_signs.diastolic_bp} onChange={(event) => updateVital("diastolic_bp", event.target.value)} />
+                </label>
+              </div>
+              <div className="form-pair">
+                <label>
+                  血氧 %
+                  <input type="number" value={profile.vital_signs.blood_oxygen} onChange={(event) => updateVital("blood_oxygen", event.target.value)} />
+                </label>
+                <label>
+                  血糖
+                  <input type="number" value={profile.vital_signs.blood_glucose ?? ""} onChange={(event) => updateVital("blood_glucose", event.target.value)} />
+                </label>
+              </div>
+              <button className="primary-button" disabled={busy} type="submit">
+                <CheckCircle2 size={18} />
+                保存体征
+              </button>
+            </form>
+            {(latestMetric?.warnings ?? []).length > 0 && (
+              <div className="warning-list" data-testid="warning-list">
+                {latestMetric?.warnings.map((warning) => (
+                  <p key={warning}>
+                    <AlertTriangle size={15} />
+                    {warning}
+                  </p>
+                ))}
+              </div>
+            )}
+          </section>
 
-          <ResumeTripPanel activeTripId={store.tripId} busy={busy} onResume={handleResumeTrip} />
-
-          <div className="divider" />
-
-          <section>
+          <section className="panel-block">
             <div className="section-heading compact">
               <div>
                 <p className="eyebrow">Step 2</p>
-                <h2>实时状态</h2>
+                <h2>Insta360 设备</h2>
               </div>
+              <Smartphone size={20} />
             </div>
-            <StatusActions disabled={!canShowRoute || busy} onChange={handleStatus} value={store.userStatus} />
-          </section>
-
-          <div className="divider" />
-
-          <section>
-            <div className="section-heading compact">
-              <div>
-                <p className="eyebrow">路线节点</p>
-                <h2>AI 规划</h2>
+            {device ? (
+              <div className="device-card" data-testid="device-card">
+                <div className="device-head">
+                  <strong>{device.device_name}</strong>
+                  <span>{device.status}</span>
+                </div>
+                <p>
+                  <Wifi size={15} />
+                  {device.connection_type} / 每{device.capture_interval_minutes}分钟采集 / {device.capture_window}
+                </p>
+                <p>
+                  <BatteryMedium size={15} />
+                  电量 {device.battery_percent}% / 剩余 {device.storage_free_gb}GB
+                </p>
               </div>
-            </div>
-            <RouteTimeline route={store.route} />
+            ) : (
+              <p className="small-muted">尚未绑定设备。</p>
+            )}
+            <button className="secondary-button wide-button" disabled={busy} onClick={handleBindDevice} type="button">
+              <Camera size={18} />
+              绑定 Insta360
+            </button>
           </section>
-
-          <div className="divider" />
-
-          <StoryTimeline events={store.events} />
         </aside>
 
-        <section className="main-panel">
-          <div className="map-grid">
-            <MapView route={store.route} />
-            <section className="tips-panel">
+        <section className="health-main">
+          <div className="content-grid">
+            <section className="panel-block capture-panel">
               <div className="section-heading compact">
                 <div>
-                  <p className="eyebrow">地图建议</p>
-                  <h2>下一步</h2>
+                  <p className="eyebrow">Step 3</p>
+                  <h2>影像采集与 AI 分析</h2>
                 </div>
-                <Map size={20} />
+                <Camera size={20} />
               </div>
-              {(store.route?.tips ?? ["先生成路线，再查看 AI 给出的路线建议。"]).map((tip) => (
-                <p key={tip}>{tip}</p>
-              ))}
+              <div className="scene-grid" data-testid="scene-grid">
+                {sceneOptions.map((option) => {
+                  const Icon = option.icon;
+                  return (
+                    <button className={sceneHint === option.value ? "scene-button is-active" : "scene-button"} key={option.value} onClick={() => setSceneHint(option.value)} type="button">
+                      <Icon size={18} />
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="action-row">
+                <button className="primary-button" data-testid="manual-capture-button" disabled={busy} onClick={() => handleCapture("manual")} type="button">
+                  <Camera size={18} />
+                  手动抓拍
+                </button>
+                <button className="secondary-button" disabled={busy} onClick={() => handleCapture("auto")} type="button">
+                  <Clock3 size={18} />
+                  模拟定时采集
+                </button>
+              </div>
+              <div className="behavior-list" data-testid="behavior-list">
+                {(dashboard?.recent_behaviors ?? []).slice(0, 5).map((behavior) => (
+                  <article className="behavior-item" key={behavior.behavior_id}>
+                    <div>
+                      <strong>{behavior.label}</strong>
+                      <span>{categoryName(behavior.category)} / 置信度 {Math.round(behavior.confidence * 100)}%</span>
+                    </div>
+                    <div className="mini-score">
+                      <b>{behavior.body_score}</b>
+                      <b>{behavior.mental_score}</b>
+                    </div>
+                    <p>{behavior.impact}</p>
+                  </article>
+                ))}
+                {(dashboard?.recent_behaviors ?? []).length === 0 && <p className="empty-note">暂无行为分析记录。</p>}
+              </div>
+            </section>
+
+            <section className="panel-block">
+              <div className="section-heading compact">
+                <div>
+                  <p className="eyebrow">Step 4</p>
+                  <h2>日度健康日志</h2>
+                </div>
+                <TrendingUp size={20} />
+              </div>
+              <button className="secondary-button wide-button" disabled={busy} onClick={handleDaily} type="button">
+                <FileText size={18} />
+                生成今日日志
+              </button>
+              {todayLog ? (
+                <div className="daily-card" data-testid="daily-card">
+                  <div className="ring-score">
+                    <strong>{todayLog.overall_score}</strong>
+                    <span>{todayLog.date}</span>
+                  </div>
+                  <div className="summary-grid">
+                    <span>饮食 {todayLog.behavior_summary.diet_count ?? 0}</span>
+                    <span>运动 {todayLog.behavior_summary.exercise_count ?? 0}</span>
+                    <span>睡眠 {todayLog.behavior_summary.sleep_count ?? 0}</span>
+                    <span>日常 {todayLog.behavior_summary.daily_count ?? 0}</span>
+                  </div>
+                  <div className="tag-list">
+                    {(todayLog.abnormal_behaviors.length ? todayLog.abnormal_behaviors : ["暂无异常"]).map((item) => (
+                      <span key={item}>{item}</span>
+                    ))}
+                  </div>
+                  {todayLog.risk_tips.slice(0, 3).map((tip) => (
+                    <p className="tip-line" key={tip}>{tip}</p>
+                  ))}
+                </div>
+              ) : (
+                <p className="empty-note">采集影像后可生成今日日志。</p>
+              )}
             </section>
           </div>
 
-          <div className="lower-grid">
-            <MediaPanel busy={busy} companion={store.companion} frames={store.frames} media={store.media} onAnalyze={handleAnalyze} onDemo={handleDemoMedia} onMark={handleMarkFrame} onUpload={handleUpload} />
-            <OutputPanel busy={busy || !store.tripId} onCopy={handleCopyText} onCreate={handleCreateExport} onDownload={handleDownloadManifest} result={store.exportResult} />
-          </div>
+          <section className="panel-block weekly-panel">
+            <div className="section-heading compact">
+              <div>
+                <p className="eyebrow">Step 5</p>
+                <h2>周度健康报告与建议</h2>
+              </div>
+              <button className="primary-button" data-testid="weekly-report-button" disabled={busy} onClick={handleWeekly} type="button">
+                <FileText size={18} />
+                生成周报
+              </button>
+            </div>
+            {weeklyReport ? (
+              <div className="weekly-grid" data-testid="weekly-report">
+                <div className="weekly-score">
+                  <span>{weeklyReport.week_start} 至 {weeklyReport.week_end}</span>
+                  <strong>{weeklyReport.average_overall_score}</strong>
+                  <p>{weeklyReport.comparison}</p>
+                </div>
+                <div className="trend-chart">
+                  {weeklyReport.trend.map((point) => (
+                    <div className="trend-bar" key={point.date}>
+                      <span style={{ height: `${Math.max(point.overall_score, 12)}%` }} />
+                      <small>{point.date.slice(5)}</small>
+                    </div>
+                  ))}
+                </div>
+                <article>
+                  <h3>身体评估</h3>
+                  <p>{weeklyReport.body_assessment}</p>
+                  <h3>心理评估</h3>
+                  <p>{weeklyReport.mental_assessment}</p>
+                </article>
+                <article>
+                  <h3>个性化建议</h3>
+                  {Object.entries(weeklyReport.suggestions).map(([key, suggestions]) => (
+                    <div className="suggestion-group" key={key}>
+                      <strong>{key}</strong>
+                      {suggestions.slice(0, 2).map((suggestion) => (
+                        <p key={suggestion}>{suggestion}</p>
+                      ))}
+                    </div>
+                  ))}
+                </article>
+                <article className="goal-card">
+                  <h3>下周目标</h3>
+                  {weeklyReport.next_week_goals.map((goal) => (
+                    <p key={goal}>
+                      <CheckCircle2 size={15} />
+                      {goal}
+                    </p>
+                  ))}
+                </article>
+              </div>
+            ) : (
+              <p className="empty-note">生成日报后，可汇总近7日数据并输出周报。</p>
+            )}
+          </section>
+
+          <section className="panel-block capture-history">
+            <div className="section-heading compact">
+              <div>
+                <p className="eyebrow">Timeline</p>
+                <h2>最近采集记录</h2>
+              </div>
+            </div>
+            <div className="capture-strip">
+              {(dashboard?.recent_captures ?? []).map((capture) => (
+                <article key={capture.capture_id}>
+                  <span>{capture.capture_mode}</span>
+                  <strong>{capture.analysis?.label ?? "待分析"}</strong>
+                  <p>{formatTime(capture.captured_at)}</p>
+                </article>
+              ))}
+              {(dashboard?.recent_captures ?? []).length === 0 && <p className="empty-note">暂无采集记录。</p>}
+            </div>
+          </section>
         </section>
       </div>
     </main>

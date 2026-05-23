@@ -32,6 +32,13 @@ def get_runtime_config() -> dict:
             "frames": len(store.frames),
             "exports": len(store.exports),
             "events": len(store.events),
+            "health_profiles": len(store.health_profiles),
+            "health_metrics": len(store.health_metrics),
+            "devices": len(store.devices),
+            "captures": len(store.captures),
+            "behavior_records": len(store.behavior_records),
+            "daily_logs": len(store.daily_logs),
+            "weekly_reports": len(store.weekly_reports),
         },
     }
 

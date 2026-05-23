@@ -18,8 +18,23 @@ def now_iso() -> str:
     return datetime.now(UTC).isoformat()
 
 
-STORE_SCHEMA = "panorama-companion.memory-store.v1"
-STORE_COLLECTIONS = ("trips", "routes", "media", "frames", "jobs", "exports", "events")
+STORE_SCHEMA = "panorama-companion.memory-store.v2"
+STORE_COLLECTIONS = (
+    "trips",
+    "routes",
+    "media",
+    "frames",
+    "jobs",
+    "exports",
+    "events",
+    "health_profiles",
+    "health_metrics",
+    "devices",
+    "captures",
+    "behavior_records",
+    "daily_logs",
+    "weekly_reports",
+)
 
 
 @dataclass
@@ -31,6 +46,13 @@ class MemoryStore:
     jobs: dict[str, dict[str, Any]] = field(default_factory=dict)
     exports: dict[str, dict[str, Any]] = field(default_factory=dict)
     events: dict[str, dict[str, Any]] = field(default_factory=dict)
+    health_profiles: dict[str, dict[str, Any]] = field(default_factory=dict)
+    health_metrics: dict[str, dict[str, Any]] = field(default_factory=dict)
+    devices: dict[str, dict[str, Any]] = field(default_factory=dict)
+    captures: dict[str, dict[str, Any]] = field(default_factory=dict)
+    behavior_records: dict[str, dict[str, Any]] = field(default_factory=dict)
+    daily_logs: dict[str, dict[str, Any]] = field(default_factory=dict)
+    weekly_reports: dict[str, dict[str, Any]] = field(default_factory=dict)
     loaded_at: str | None = None
     saved_at: str | None = None
     persistence_error: str | None = None
@@ -96,6 +118,13 @@ def reset_store(clear_files: bool = False) -> None:
     store.jobs.clear()
     store.exports.clear()
     store.events.clear()
+    store.health_profiles.clear()
+    store.health_metrics.clear()
+    store.devices.clear()
+    store.captures.clear()
+    store.behavior_records.clear()
+    store.daily_logs.clear()
+    store.weekly_reports.clear()
 
     if clear_files:
         for directory in (settings.uploads_dir, settings.frames_dir, settings.exports_dir):

@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from app.api.companion import router as companion_router
 from app.api.dev import router as dev_router
 from app.api.exports import router as exports_router
+from app.api.health import router as health_router
 from app.api.media import router as media_router
 from app.api.trips import router as trips_router
 from app.core.config import settings
@@ -35,6 +36,7 @@ app.include_router(trips_router)
 app.include_router(media_router)
 app.include_router(companion_router)
 app.include_router(exports_router)
+app.include_router(health_router)
 app.include_router(dev_router)
 
 
