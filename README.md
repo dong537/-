@@ -12,6 +12,7 @@
 - 身心健康评分：输出身体分、心理分、风险标签和个性化建议。
 - 日度健康日志：汇总今日行为、异常行为和风险提示。
 - 周度健康报告：生成趋势、身体评估、心理评估、饮食/运动/睡眠/心态建议和下周目标。
+- 真实影石设备桥接：新增 Android bridge 工程，可通过影石 SDK 控制相机并把状态/抓拍结果回传后端。
 
 ## 启动方式
 
@@ -25,6 +26,15 @@
 
 - Web: http://127.0.0.1:5173
 - API: http://127.0.0.1:8010
+
+真实 Android 设备接入时使用局域网模式：
+
+```powershell
+.\scripts\stop-dev.ps1
+.\scripts\start-real-device.ps1
+```
+
+脚本会输出 `API for Android phone`，把这个地址填入 `mobile/insta360-health-bridge` App。
 
 也可以分开启动：
 

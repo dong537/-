@@ -503,6 +503,12 @@ export function App() {
                   <Wifi size={15} />
                   {device.connection_type} / 每{device.capture_interval_minutes}分钟采集 / {device.capture_window}
                 </p>
+                {device.camera_serial && (
+                  <p>
+                    <Camera size={15} />
+                    序列号 {device.camera_serial}{device.camera_version ? ` / ${device.camera_version}` : ""}
+                  </p>
+                )}
                 <p>
                   <BatteryMedium size={15} />
                   电量 {device.battery_percent}% / 剩余 {device.storage_free_gb}GB

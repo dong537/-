@@ -69,6 +69,8 @@ class DeviceResponse(BaseModel):
     user_id: str
     device_name: str
     device_model: str
+    camera_serial: str | None = None
+    camera_version: str | None = None
     provider: str
     connection_type: str
     status: str
@@ -90,6 +92,43 @@ class CaptureCreateRequest(BaseModel):
     capture_mode: str = Field(default="manual", pattern="^(manual|auto|offline_cache)$")
     scene_hint: str | None = Field(default=None, max_length=80)
     image_url: str | None = Field(default=None, max_length=300)
+    captured_at: str | None = None
+
+
+class Insta360BridgeDeviceRequest(BaseModel):
+    user_id: str = Field(default="demo_user", min_length=1)
+    device_name: str = Field(default="Insta360 Camera", min_length=1, max_length=80)
+    device_model: str = Field(default="Insta360", min_length=1, max_length=80)
+    camera_serial: str | None = Field(default=None, max_length=120)
+    camera_version: str | None = Field(default=None, max_length=80)
+    connection_type: str = Field(default="wifi", pattern="^(wifi|bluetooth|ble|usb)$")
+    status: str = Field(default="online", pattern="^(online|offline|low_battery|fault)$")
+    battery_percent: int = Field(default=80, ge=0, le=100)
+    storage_free_gb: float = Field(default=0, ge=0)
+    auto_capture_enabled: bool = True
+    capture_interval_minutes: int = Field(default=10, ge=5, le=30)
+    capture_window: str = Field(default="08:00-22:00", max_length=30)
+    status_detail: str | None = Field(default=None, max_length=300)
+
+
+class Insta360BridgeStatusRequest(BaseModel):
+    connection_type: str | None = Field(default=None, pattern="^(wifi|bluetooth|ble|usb)$")
+    status: str = Field(default="online", pattern="^(online|offline|low_battery|fault)$")
+    battery_percent: int | None = Field(default=None, ge=0, le=100)
+    storage_free_gb: float | None = Field(default=None, ge=0)
+    camera_version: str | None = Field(default=None, max_length=80)
+    status_detail: str | None = Field(default=None, max_length=300)
+
+
+class Insta360BridgeCaptureRequest(BaseModel):
+    user_id: str = Field(default="demo_user", min_length=1)
+    device_id: str | None = None
+    camera_serial: str | None = Field(default=None, max_length=120)
+    capture_mode: str = Field(default="auto", pattern="^(manual|auto|offline_cache)$")
+    scene_hint: str | None = Field(default=None, max_length=80)
+    image_url: str | None = Field(default=None, max_length=500)
+    local_path: str | None = Field(default=None, max_length=500)
+    camera_file_urls: list[str] = Field(default_factory=list)
     captured_at: str | None = None
 
 

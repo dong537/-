@@ -149,6 +149,77 @@ http://127.0.0.1:8010
 }
 ```
 
+### `POST /api/health/insta360/bridge/devices`
+
+Android bridge 注册或更新真实影石设备。
+
+请求关键字段：
+
+```json
+{
+  "user_id": "demo_user",
+  "device_name": "Insta360 X4 Living Room",
+  "device_model": "Insta360 X4",
+  "camera_serial": "X4REAL001",
+  "camera_version": "v1.2.3",
+  "connection_type": "usb",
+  "status": "online",
+  "battery_percent": 73,
+  "storage_free_gb": 44.2,
+  "auto_capture_enabled": true,
+  "capture_interval_minutes": 10,
+  "capture_window": "08:00-22:00"
+}
+```
+
+响应为 `DeviceResponse`，包含 `device_id`，Android bridge 后续状态和采集上报使用该 ID。
+
+### `POST /api/health/insta360/bridge/devices/{device_id}/status`
+
+Android bridge 上报真实设备状态。
+
+```json
+{
+  "connection_type": "wifi",
+  "status": "online",
+  "battery_percent": 68,
+  "storage_free_gb": 43.6,
+  "camera_version": "v1.2.3"
+}
+```
+
+### `POST /api/health/insta360/bridge/captures`
+
+Android bridge 上报抓拍元数据。适用于 SDK 返回相机文件 URL 或本地路径，但不直接上传文件的场景。
+
+```json
+{
+  "user_id": "demo_user",
+  "device_id": "device_xxx",
+  "camera_serial": "X4REAL001",
+  "capture_mode": "auto",
+  "scene_hint": "breakfast",
+  "local_path": "/storage/emulated/0/DCIM/Camera01/IMG_001.jpg",
+  "camera_file_urls": ["http://camera.local/DCIM/Camera01/VID_001.insv"]
+}
+```
+
+### `POST /api/health/insta360/bridge/captures/upload`
+
+Android bridge 直接上传真实图片文件。请求为 `multipart/form-data`：
+
+```text
+file=<image file>
+user_id=demo_user
+device_id=device_xxx
+camera_serial=X4REAL001
+capture_mode=auto
+scene_hint=workout
+captured_at=2026-05-23T14:30:00+08:00
+```
+
+后端会保存到 `api/data/uploads/insta360-health/`，并立即进入健康影像分析流程。
+
 ### `POST /api/dev/reset?clear_files=false`
 
 重置内存演示状态。`clear_files=true` 时会清理本地上传、抽帧和导出文件。

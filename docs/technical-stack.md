@@ -50,6 +50,7 @@ Local MVP Storage
 | 语音 | Web Speech API | 浏览器端播报 AI 伴游讲解 |
 | 样式 | CSS | 轻量响应式布局，无外部 UI 框架 |
 | E2E 测试 | Playwright | 验证一键演示、运行状态和最近演示恢复 |
+| Android Bridge | 原生 Android/Kotlin | 真实影石设备连接、抓拍、状态回传和文件上传 |
 
 前端关键文件：
 
@@ -62,6 +63,7 @@ Local MVP Storage
 - `web/src/components/StoryTimeline.tsx`：旅程事件故事线。
 - `web/src/components/SystemStatusPanel.tsx`：展示 API、ready checks、上传限制、状态快照和对象计数。
 - `web/src/components/ResumeTripPanel.tsx`：读取最近行程并恢复到当前工作台。
+- `mobile/insta360-health-bridge`：真实影石设备桥接 App，调用影石 Android SDK 后回传到健康 API。
 
 ## 4. 后端技术栈
 

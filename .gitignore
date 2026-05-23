@@ -20,3 +20,8 @@ sdk_demo_1.9.11/
 **/sdk_demo_1.9.11/
 *.apk
 *.aab
+*.jks
+*.keystore
+mobile/**/.gradle/
+mobile/**/build/
+mobile/**/local.properties

@@ -125,6 +125,69 @@ def test_insta360_sdk_bridge_status_and_command_plan() -> None:
     assert unsupported.status_code == 400
 
 
+def test_insta360_real_bridge_device_status_capture_and_upload() -> None:
+    device = client.post(
+        "/api/health/insta360/bridge/devices",
+        json={
+            "user_id": "demo_user",
+            "device_name": "Insta360 X4 Living Room",
+            "device_model": "Insta360 X4",
+            "camera_serial": "X4REAL001",
+            "camera_version": "v1.2.3",
+            "connection_type": "usb",
+            "status": "online",
+            "battery_percent": 73,
+            "storage_free_gb": 44.2,
+            "auto_capture_enabled": True,
+            "capture_interval_minutes": 10,
+            "capture_window": "08:00-22:00",
+        },
+    )
+    assert device.status_code == 200
+    device_body = device.json()
+    assert device_body["provider"] == "insta360_android_sdk_v1_9_11_bridge"
+    assert device_body["camera_serial"] == "X4REAL001"
+    assert device_body["connection_type"] == "usb"
+
+    status = client.post(
+        f"/api/health/insta360/bridge/devices/{device_body['device_id']}/status",
+        json={"connection_type": "wifi", "status": "online", "battery_percent": 68, "storage_free_gb": 43.6},
+    )
+    assert status.status_code == 200
+    assert status.json()["connection_type"] == "wifi"
+    assert status.json()["battery_percent"] == 68
+
+    capture = client.post(
+        "/api/health/insta360/bridge/captures",
+        json={
+            "user_id": "demo_user",
+            "camera_serial": "X4REAL001",
+            "capture_mode": "manual",
+            "scene_hint": "breakfast",
+            "image_url": "http://phone.local/insta360/capture.jpg",
+            "camera_file_urls": ["http://camera.local/DCIM/Camera01/VID_001.insv"],
+        },
+    )
+    assert capture.status_code == 200
+    assert capture.json()["status"] == "analyzed"
+    assert capture.json()["device_id"] == device_body["device_id"]
+
+    uploaded = client.post(
+        "/api/health/insta360/bridge/captures/upload",
+        data={
+            "user_id": "demo_user",
+            "camera_serial": "X4REAL001",
+            "capture_mode": "auto",
+            "scene_hint": "workout",
+        },
+        files={"file": ("capture.jpg", b"fake-jpeg-bytes", "image/jpeg")},
+    )
+    assert uploaded.status_code == 200
+    uploaded_body = uploaded.json()
+    assert uploaded_body["status"] == "analyzed"
+    assert uploaded_body["image_url"].startswith("http://127.0.0.1:8010/files/uploads/insta360-health/")
+
+
 def test_device_offline_cache_history_and_weekly_pdf() -> None:
     demo = client.post("/api/health/demo")
     assert demo.status_code == 200

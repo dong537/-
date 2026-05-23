@@ -53,6 +53,8 @@ export type DeviceBindPayload = {
 
 export type DeviceResponse = DeviceBindPayload & {
   device_id: string;
+  camera_serial?: string | null;
+  camera_version?: string | null;
   provider: string;
   status: string;
   battery_percent: number;

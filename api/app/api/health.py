@@ -1,8 +1,10 @@
 import json
+from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
 
+from app.core.config import settings
 from app.domain.health_service import (
     DEFAULT_USER_ID,
     bind_device,
@@ -15,14 +17,17 @@ from app.domain.health_service import (
     get_weekly_report,
     list_daily_logs,
     list_weekly_reports,
+    record_bridge_capture,
+    record_bridge_status,
     review_capture,
     run_demo_flow,
     sync_offline_captures,
     update_device,
+    upsert_bridge_device,
     upsert_health_profile,
 )
 from app.domain.insta360_sdk_bridge import get_command_plan, get_sdk_status
-from app.domain.store import store
+from app.domain.store import new_id, store
 from app.schemas.health import (
     CaptureCreateRequest,
     CaptureResponse,
@@ -36,6 +41,9 @@ from app.schemas.health import (
     HealthDashboardResponse,
     HealthProfileRequest,
     HealthProfileResponse,
+    Insta360BridgeCaptureRequest,
+    Insta360BridgeDeviceRequest,
+    Insta360BridgeStatusRequest,
     Insta360CommandPlanResponse,
     Insta360SdkStatusResponse,
     OfflineSyncResponse,
@@ -44,6 +52,29 @@ from app.schemas.health import (
 )
 
 router = APIRouter(prefix="/api/health", tags=["health"])
+
+
+async def _save_bridge_upload(upload: UploadFile) -> str:
+    suffix = Path(upload.filename or "capture.jpg").suffix.lower() or ".jpg"
+    if len(suffix) > 12:
+        suffix = ".bin"
+    target_dir = settings.uploads_dir / "insta360-health"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target = target_dir / f"{new_id('insta360')}{suffix}"
+    total = 0
+    chunk_size = 1024 * 1024
+    try:
+        with target.open("wb") as buffer:
+            while chunk := await upload.read(chunk_size):
+                total += len(chunk)
+                if total > settings.max_upload_bytes:
+                    raise HTTPException(status_code=413, detail="Uploaded file exceeds MAX_UPLOAD_BYTES")
+                buffer.write(chunk)
+    except Exception:
+        target.unlink(missing_ok=True)
+        raise
+    relative = target.resolve().relative_to(settings.data_dir)
+    return f"{settings.app_base_url}/files/{relative.as_posix()}"
 
 
 @router.get("/dashboard", response_model=HealthDashboardResponse)
@@ -88,6 +119,19 @@ def sync_camera_cache(device_id: str) -> dict:
     return result
 
 
+@router.post("/insta360/bridge/devices", response_model=DeviceResponse)
+def bridge_register_device(payload: Insta360BridgeDeviceRequest) -> dict:
+    return upsert_bridge_device(payload.model_dump())
+
+
+@router.post("/insta360/bridge/devices/{device_id}/status", response_model=DeviceResponse)
+def bridge_device_status(device_id: str, payload: Insta360BridgeStatusRequest) -> dict:
+    device = record_bridge_status(device_id, payload.model_dump(exclude_none=True))
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+    return device
+
+
 @router.get("/insta360/sdk/status", response_model=Insta360SdkStatusResponse)
 def insta360_sdk_status() -> dict:
     return get_sdk_status()
@@ -99,6 +143,41 @@ def insta360_sdk_command_plan(operation: str = "capture") -> dict:
     if not plan:
         raise HTTPException(status_code=400, detail=f"Unsupported Insta360 SDK operation: {operation}")
     return plan
+
+
+@router.post("/insta360/bridge/captures", response_model=CaptureResponse)
+def bridge_capture(payload: Insta360BridgeCaptureRequest) -> dict:
+    if payload.device_id and payload.device_id not in store.devices:
+        raise HTTPException(status_code=404, detail="Device not found")
+    return record_bridge_capture(payload.model_dump())
+
+
+@router.post("/insta360/bridge/captures/upload", response_model=CaptureResponse)
+async def bridge_capture_upload(
+    file: UploadFile = File(...),
+    user_id: str = Form(default=DEFAULT_USER_ID),
+    device_id: str | None = Form(default=None),
+    camera_serial: str | None = Form(default=None),
+    capture_mode: str = Form(default="auto"),
+    scene_hint: str | None = Form(default=None),
+    captured_at: str | None = Form(default=None),
+) -> dict:
+    if capture_mode not in {"manual", "auto", "offline_cache"}:
+        raise HTTPException(status_code=422, detail="capture_mode must be manual, auto, or offline_cache")
+    if device_id and device_id not in store.devices:
+        raise HTTPException(status_code=404, detail="Device not found")
+    image_url = await _save_bridge_upload(file)
+    return record_bridge_capture(
+        {
+            "user_id": user_id,
+            "device_id": device_id,
+            "camera_serial": camera_serial,
+            "capture_mode": capture_mode,
+            "scene_hint": scene_hint,
+            "image_url": image_url,
+            "captured_at": captured_at,
+        }
+    )
 
 
 @router.post("/captures", response_model=CaptureResponse)

@@ -1,5 +1,6 @@
 param(
-  [int]$Port = 8010
+  [int]$Port = 8010,
+  [string]$BindHost = "127.0.0.1"
 )
 
 $ErrorActionPreference = "Stop"
@@ -15,5 +16,5 @@ if (!(Test-Path $Python)) {
 }
 
 Push-Location $ApiDir
-& $Python -m uvicorn app.main:app --reload --host 127.0.0.1 --port $Port
+& $Python -m uvicorn app.main:app --reload --host $BindHost --port $Port
 Pop-Location

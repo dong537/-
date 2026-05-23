@@ -23,12 +23,17 @@ $env:INSTA360_SDK_DEMO_PATH="C:\Users\Lenovo\Desktop\黑客松prd\sdk_demo_1.9.1
 - 后端不导入 Android SDK 类，不复制 demo 源码。
 - Android 原生桥接层负责调用影石 SDK，并把设备状态、采集元数据、下载后的文件路径回传到健康监测 API。
 - FastAPI 保持 provider-agnostic，只消费设备、影像和同步结果。
+- 真实设备桥接工程位于 `mobile/insta360-health-bridge`，可用 Android Studio 打开并安装到安卓手机。
 
 已新增接口：
 
 ```text
 GET /api/health/insta360/sdk/status
 GET /api/health/insta360/sdk/command-plan?operation=bind|capture|sync|export|status
+POST /api/health/insta360/bridge/devices
+POST /api/health/insta360/bridge/devices/{device_id}/status
+POST /api/health/insta360/bridge/captures
+POST /api/health/insta360/bridge/captures/upload
 ```
 
 provider 标识：
@@ -107,6 +112,16 @@ mobile/
   }
 }
 ```
+
+## 真实设备步骤
+
+1. 运行 `.\scripts\stop-dev.ps1`，再运行 `.\scripts\start-real-device.ps1`。
+2. 记下脚本输出的 `API for Android phone` 地址。
+3. 用 Android Studio 打开 `mobile/insta360-health-bridge`，配置影石 Maven 凭据后安装到安卓手机。
+4. 手机与电脑连接同一 Wi-Fi，在 App 中填入第 2 步的 API 地址。
+5. 打开相机并确保手机蓝牙、定位、Wi-Fi 权限已授权。
+6. 优先点 `Scan BLE`，发现设备后自动 BLE 连接；如使用 USB 线，点 `Connect USB`。
+7. 连接成功后点 `Capture`，后端 Web 工作台会出现真实设备采集记录。
 
 ## 验证
 

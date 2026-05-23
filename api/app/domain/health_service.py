@@ -158,6 +158,18 @@ def _device_for_user(user_id: str = DEFAULT_USER_ID) -> dict[str, Any] | None:
     return sorted(devices, key=lambda item: item["updated_at"], reverse=True)[0]
 
 
+def _normalize_connection_type(value: str | None) -> str:
+    if value == "ble":
+        return "bluetooth"
+    return value or "wifi"
+
+
+def _device_by_serial(camera_serial: str | None) -> dict[str, Any] | None:
+    if not camera_serial:
+        return None
+    return next((device for device in store.devices.values() if device.get("camera_serial") == camera_serial), None)
+
+
 def upsert_health_profile(payload: dict[str, Any]) -> dict[str, Any]:
     user_id = payload.get("user_id") or DEFAULT_USER_ID
     existing = next((profile for profile in store.health_profiles.values() if profile["user_id"] == user_id), None)
@@ -207,16 +219,18 @@ def bind_device(payload: dict[str, Any]) -> dict[str, Any]:
         "user_id": user_id,
         "device_name": payload["device_name"],
         "device_model": payload["device_model"],
+        "camera_serial": payload.get("camera_serial"),
+        "camera_version": payload.get("camera_version"),
         "provider": PROVIDER_ID,
-        "connection_type": payload["connection_type"],
-        "status": "online",
-        "battery_percent": 86,
-        "storage_free_gb": 58.4,
+        "connection_type": _normalize_connection_type(payload["connection_type"]),
+        "status": payload.get("status", "online"),
+        "battery_percent": payload.get("battery_percent", 86),
+        "storage_free_gb": payload.get("storage_free_gb", 58.4),
         "auto_capture_enabled": payload["auto_capture_enabled"],
         "capture_interval_minutes": payload["capture_interval_minutes"],
         "capture_window": payload["capture_window"],
         "offline_cache_count": 0,
-        "status_detail": None,
+        "status_detail": payload.get("status_detail"),
         "last_seen_at": timestamp,
         "created_at": timestamp,
         "updated_at": timestamp,
@@ -224,6 +238,44 @@ def bind_device(payload: dict[str, Any]) -> dict[str, Any]:
     store.devices[device["device_id"]] = device
     persist_store()
     return device
+
+
+def upsert_bridge_device(payload: dict[str, Any]) -> dict[str, Any]:
+    user_id = payload.get("user_id") or DEFAULT_USER_ID
+    timestamp = now_iso()
+    device = _device_by_serial(payload.get("camera_serial"))
+    if device:
+        device.update(
+            {
+                "user_id": user_id,
+                "device_name": payload["device_name"],
+                "device_model": payload["device_model"],
+                "camera_version": payload.get("camera_version") or device.get("camera_version"),
+                "connection_type": _normalize_connection_type(payload.get("connection_type")),
+                "status": payload.get("status", "online"),
+                "battery_percent": payload.get("battery_percent", device.get("battery_percent", 80)),
+                "storage_free_gb": payload.get("storage_free_gb", device.get("storage_free_gb", 0)),
+                "auto_capture_enabled": payload.get("auto_capture_enabled", device.get("auto_capture_enabled", True)),
+                "capture_interval_minutes": payload.get("capture_interval_minutes", device.get("capture_interval_minutes", 10)),
+                "capture_window": payload.get("capture_window", device.get("capture_window", "08:00-22:00")),
+                "status_detail": payload.get("status_detail"),
+                "last_seen_at": timestamp,
+                "updated_at": timestamp,
+            }
+        )
+    else:
+        device = bind_device(payload)
+        device["last_seen_at"] = timestamp
+        device["updated_at"] = timestamp
+    persist_store()
+    return device
+
+
+def record_bridge_status(device_id: str, payload: dict[str, Any]) -> dict[str, Any] | None:
+    update_payload = dict(payload)
+    if "connection_type" in update_payload:
+        update_payload["connection_type"] = _normalize_connection_type(update_payload["connection_type"])
+    return update_device(device_id, update_payload)
 
 
 def update_device(device_id: str, payload: dict[str, Any]) -> dict[str, Any] | None:
@@ -238,6 +290,16 @@ def update_device(device_id: str, payload: dict[str, Any]) -> dict[str, Any] | N
         device["last_seen_at"] = device["updated_at"]
     persist_store()
     return device
+
+
+def resolve_bridge_device_id(device_id: str | None = None, camera_serial: str | None = None, user_id: str = DEFAULT_USER_ID) -> str | None:
+    if device_id and device_id in store.devices:
+        return device_id
+    device = _device_by_serial(camera_serial)
+    if device:
+        return device["device_id"]
+    latest = _device_for_user(user_id)
+    return latest["device_id"] if latest else None
 
 
 def _scene_from_hint(scene_hint: str | None) -> dict[str, Any]:
@@ -366,6 +428,27 @@ def sync_offline_captures(device_id: str) -> dict[str, Any] | None:
     device["updated_at"] = timestamp
     persist_store()
     return {"device": device, "synced_captures": synced}
+
+
+def record_bridge_capture(payload: dict[str, Any]) -> dict[str, Any]:
+    user_id = payload.get("user_id") or DEFAULT_USER_ID
+    device_id = resolve_bridge_device_id(payload.get("device_id"), payload.get("camera_serial"), user_id)
+    capture = create_capture(
+        {
+            "user_id": user_id,
+            "device_id": device_id,
+            "capture_mode": payload.get("capture_mode", "auto"),
+            "scene_hint": payload.get("scene_hint"),
+            "image_url": payload.get("image_url"),
+            "captured_at": payload.get("captured_at"),
+        }
+    )
+    capture["provider"] = PROVIDER_ID
+    capture["camera_serial"] = payload.get("camera_serial")
+    capture["camera_file_urls"] = payload.get("camera_file_urls", [])
+    capture["local_path"] = payload.get("local_path")
+    persist_store()
+    return capture
 
 
 def review_capture(capture_id: str, payload: dict[str, Any]) -> dict[str, Any] | None:
