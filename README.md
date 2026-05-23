@@ -26,6 +26,7 @@
 完整技术栈、架构边界和后续扩展见：
 
 - [docs/technical-stack.md](docs/technical-stack.md)
+- [docs/api-contract.md](docs/api-contract.md)
 
 ## 启动方式
 

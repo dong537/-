@@ -55,3 +55,4 @@ class TripDetail(BaseModel):
     media: list[dict]
     frames: list[dict]
     exports: list[dict]
+    events: list[dict]

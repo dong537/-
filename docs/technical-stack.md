@@ -86,6 +86,10 @@ Local MVP Storage
 
 ## 5. API 能力边界
 
+详细接口契约见：
+
+- [api-contract.md](api-contract.md)
+
 | 能力 | Endpoint |
 | --- | --- |
 | 健康检查 | `GET /health` |
