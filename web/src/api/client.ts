@@ -18,6 +18,53 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+export type RuntimeConfig = {
+  ai_provider: string;
+  ai_mode: string;
+  map_provider: string;
+  map_mode: string;
+  app_base_url: string;
+  frame_extract_interval_seconds: number;
+  max_frame_analysis_count: number;
+  max_upload_bytes: number;
+  request_log_enabled: boolean;
+  store_persistence_enabled: boolean;
+  state_file: string;
+  store_loaded_at: string | null;
+  store_saved_at: string | null;
+  store_persistence_error: string | null;
+  counts?: Record<string, number>;
+  text_model: string;
+  vision_model: string;
+};
+
+export type HealthStatus = {
+  status: string;
+  app_env: string;
+  ai_provider: string;
+  ai_mode: string;
+  map_provider: string;
+  map_mode: string;
+};
+
+export type ReadyStatus = {
+  status: "ready" | "degraded";
+  checks: Record<string, boolean>;
+};
+
+export async function getHealth() {
+  return request<HealthStatus>("/health");
+}
+
+export async function getReady() {
+  const response = await fetch(`${API_BASE_URL}/ready`);
+  if (response.status !== 200 && response.status !== 503) {
+    const detail = await response.text();
+    throw new Error(detail || `Request failed: ${response.status}`);
+  }
+  return response.json() as Promise<ReadyStatus>;
+}
+
 export async function createTrip(payload: {
   destination: string;
   duration_minutes: number;
@@ -99,24 +146,7 @@ export async function getExportBundle(exportId: string) {
 }
 
 export async function getRuntimeConfig() {
-  return request<{
-    ai_provider: string;
-    ai_mode: string;
-    map_provider: string;
-    map_mode: string;
-    app_base_url: string;
-    frame_extract_interval_seconds: number;
-    max_frame_analysis_count: number;
-    max_upload_bytes: number;
-    request_log_enabled: boolean;
-    store_persistence_enabled: boolean;
-    state_file: string;
-    store_loaded_at: string | null;
-    store_saved_at: string | null;
-    store_persistence_error: string | null;
-    text_model: string;
-    vision_model: string;
-  }>("/api/dev/config");
+  return request<RuntimeConfig>("/api/dev/config");
 }
 
 export async function resetDemo() {

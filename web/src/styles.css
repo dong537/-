@@ -259,7 +259,8 @@ input:focus {
 .secondary-button,
 .ghost-button,
 .file-button,
-.icon-button {
+.icon-button,
+.icon-only-button {
   justify-content: center;
   gap: 8px;
   min-height: 40px;
@@ -291,6 +292,17 @@ input:focus {
   color: #34443c;
   background: #f6f8f3;
   border-color: #d8e0d3;
+}
+
+.icon-only-button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  min-height: 34px;
+  padding: 0;
+  color: #2d604b;
+  background: #edf4ee;
+  border-color: #ccd9cd;
 }
 
 .status-grid .icon-button {
@@ -561,6 +573,134 @@ input:focus {
   color: #63736b;
   font-size: 12px;
   line-height: 1.45;
+}
+
+.system-panel {
+  padding: 14px;
+  background: #f8faf6;
+  border: 1px solid #dfe6da;
+  border-radius: 8px;
+}
+
+.system-banner,
+.state-row,
+.check-item,
+.count-row span {
+  display: flex;
+  align-items: center;
+}
+
+.system-banner {
+  gap: 10px;
+  padding: 10px;
+  color: #44514b;
+  background: #ffffff;
+  border: 1px solid #dfe6da;
+  border-radius: 6px;
+}
+
+.system-banner.is-ready {
+  color: #1f5c42;
+  background: #edf7ef;
+  border-color: #c7dfc8;
+}
+
+.system-banner.is-degraded {
+  color: #71501b;
+  background: #fff7df;
+  border-color: #e4c879;
+}
+
+.system-banner strong,
+.system-banner span {
+  display: block;
+}
+
+.system-banner strong {
+  text-transform: capitalize;
+}
+
+.system-banner span {
+  margin-top: 2px;
+  color: #69776f;
+  font-size: 12px;
+}
+
+.system-grid {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 7px 12px;
+  margin-top: 12px;
+  font-size: 12px;
+}
+
+.system-grid span {
+  color: #6b7a72;
+}
+
+.system-grid strong {
+  min-width: 0;
+  color: #20372f;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.state-row {
+  gap: 7px;
+  margin-top: 11px;
+  color: #2d604b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.check-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.check-item {
+  gap: 5px;
+  max-width: 100%;
+  padding: 5px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.check-item.is-ok {
+  color: #2d604b;
+  background: #eaf2e8;
+}
+
+.check-item.is-bad {
+  color: #8a5c00;
+  background: #fff0c7;
+}
+
+.count-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.count-row span {
+  justify-content: center;
+  gap: 4px;
+  min-height: 34px;
+  color: #52635b;
+  background: #ffffff;
+  border: 1px solid #dfe6da;
+  border-radius: 6px;
+  font-size: 11px;
+}
+
+.count-row strong {
+  color: #20372f;
+  font-size: 13px;
 }
 
 .media-panel,

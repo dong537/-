@@ -58,6 +58,7 @@ Local MVP Storage
 - `web/src/components/MediaPanel.tsx`：素材预览、抽帧、标记、语音播报。
 - `web/src/components/OutputPanel.tsx`：自动出片、文案复制、ZIP 导出。
 - `web/src/components/StoryTimeline.tsx`：旅程事件故事线。
+- `web/src/components/SystemStatusPanel.tsx`：展示 API、ready checks、上传限制、状态快照和对象计数。
 
 ## 4. 后端技术栈
 

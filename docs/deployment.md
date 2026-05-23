@@ -316,6 +316,7 @@ object-storage
 
 - `/health` 状态。
 - `/ready` 就绪状态。
+- 前端系统状态面板中的 ready checks 和数据计数。
 - API 5xx 错误率。
 - 抽帧失败率。
 - 导出失败率。

@@ -21,6 +21,7 @@ import { OutputPanel } from "./components/OutputPanel";
 import { RouteTimeline } from "./components/RouteTimeline";
 import { StoryTimeline } from "./components/StoryTimeline";
 import { StatusActions } from "./components/StatusActions";
+import { SystemStatusPanel } from "./components/SystemStatusPanel";
 import { useTripStore } from "./store/useTripStore";
 import type { FrameAsset, UserStatus } from "./types";
 
@@ -334,6 +335,10 @@ export function App() {
               </div>
             </div>
           </form>
+
+          <div className="divider" />
+
+          <SystemStatusPanel />
 
           <div className="divider" />
 
