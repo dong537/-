@@ -57,6 +57,8 @@ export type DeviceResponse = DeviceBindPayload & {
   status: string;
   battery_percent: number;
   storage_free_gb: number;
+  offline_cache_count: number;
+  status_detail?: string | null;
   last_seen_at: string;
   created_at: string;
   updated_at: string;
@@ -151,6 +153,8 @@ export type HealthDashboard = {
   recent_captures: CaptureResponse[];
   recent_behaviors: BehaviorRecord[];
   metric_trend: HealthMetric[];
+  daily_history: DailyLogResponse[];
+  weekly_history: WeeklyReportResponse[];
   status: {
     profile_ready: boolean;
     device_ready: boolean;
@@ -159,6 +163,11 @@ export type HealthDashboard = {
     daily_log_ready: boolean;
     weekly_report_ready: boolean;
   };
+};
+
+export type OfflineSyncResponse = {
+  device: DeviceResponse;
+  synced_captures: CaptureResponse[];
 };
 
 export type DemoFlowResponse = {

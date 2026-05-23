@@ -11,6 +11,9 @@
 - 身心健康评分：生成身体健康分、心理健康分、风险标签和建议。
 - 日度日志：汇总当日行为频次、异常行为、风险提示和综合分。
 - 周度报告：汇总近 7 日趋势、身体评估、心理评估、四类建议和下周目标。
+- 异常容错：支持设备离线状态、低电量/故障字段、离线采集缓存、恢复联网后批量同步分析。
+- 历史回溯：支持日报历史、周报历史、体征趋势回溯。
+- 报告导出：支持周度报告 PDF 下载入口，MVP 阶段输出可交接的 PDF-like 文件。
 - 可视化工作台：前端首页展示设备、体征、采集、分析、日报、周报和趋势。
 
 ## 后端新增模块
@@ -30,8 +33,12 @@ POST /api/health/profiles
 POST /api/health/devices/bind
 PATCH /api/health/devices/{device_id}
 POST /api/health/captures
+POST /api/health/devices/{device_id}/sync
 POST /api/health/daily/{user_id}
+GET  /api/health/daily/{user_id}
 POST /api/health/weekly/{user_id}
+GET  /api/health/weekly/{user_id}
+GET  /api/health/weekly/reports/{report_id}/pdf
 POST /api/health/demo
 ```
 

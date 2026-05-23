@@ -23,16 +23,20 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   bindHealthDevice,
   createHealthCapture,
+  downloadWeeklyReportPdf,
   generateDailyLog,
   generateWeeklyReport,
   getHealthDashboard,
   getRuntimeConfig,
   resetDemo,
   runHealthDemo,
-  saveHealthProfile
+  saveHealthProfile,
+  syncHealthDevice,
+  updateHealthDevice
 } from "./api/client";
 import { SystemStatusPanel } from "./components/SystemStatusPanel";
-import type { CaptureCreatePayload, HealthDashboard, HealthProfilePayload, RuntimeConfig } from "./types";
+import type { RuntimeConfig } from "./api/client";
+import type { CaptureCreatePayload, HealthDashboard, HealthProfilePayload } from "./types";
 
 const userId = "demo_user";
 
@@ -125,8 +129,7 @@ export function App() {
     setBusy(true);
     setNotice(message);
     try {
-      const result = await task();
-      return result;
+      return await task();
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "操作失败，请稍后重试。");
       return undefined;
@@ -184,6 +187,28 @@ export function App() {
     });
   }
 
+  async function handleDeviceOffline() {
+    if (!device) return;
+    await run("正在模拟设备断网离线，后续采集会进入本地缓存。", async () => {
+      await updateHealthDevice(device.device_id, {
+        status: "offline",
+        battery_percent: Math.min(device.battery_percent, 18),
+        status_detail: "Device offline; waiting for Wi-Fi reconnect."
+      });
+      await refreshDashboard();
+      setNotice("设备已切换为离线状态，自动采集将先缓存，联网后可批量同步。");
+    });
+  }
+
+  async function handleSyncCache() {
+    if (!device) return;
+    await run("正在同步离线缓存影像并补做 AI 分析。", async () => {
+      const result = await syncHealthDevice(device.device_id);
+      await refreshDashboard();
+      setNotice(`已同步 ${result.synced_captures.length} 条离线缓存采集。`);
+    });
+  }
+
   async function handleCapture(mode: CaptureCreatePayload["capture_mode"]) {
     await run(mode === "manual" ? "正在执行手动抓拍并优先分析。" : "正在模拟自动定时采集。", async () => {
       await createHealthCapture({
@@ -193,7 +218,7 @@ export function App() {
         scene_hint: sceneHint
       });
       await refreshDashboard();
-      setNotice("影像已完成 AI 场景识别、行为拆解和身心健康评分。");
+      setNotice(device?.status === "offline" ? "设备离线，影像已进入缓存队列。" : "影像已完成 AI 场景识别、行为拆解和身心健康评分。");
     });
   }
 
@@ -210,6 +235,22 @@ export function App() {
       await generateWeeklyReport(userId);
       await refreshDashboard();
       setNotice("周度健康报告已生成，包含趋势、评估和下周目标。");
+    });
+  }
+
+  async function handleDownloadWeeklyPdf() {
+    if (!weeklyReport) return;
+    await run("正在导出周度健康报告 PDF。", async () => {
+      const blob = await downloadWeeklyReportPdf(weeklyReport.report_id);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${weeklyReport.report_id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      setNotice("周度健康报告 PDF 已导出。");
     });
   }
 
@@ -386,14 +427,28 @@ export function App() {
                   <BatteryMedium size={15} />
                   电量 {device.battery_percent}% / 剩余 {device.storage_free_gb}GB
                 </p>
+                <p>
+                  <Clock3 size={15} />
+                  缓存 {device.offline_cache_count ?? 0} 条{device.status_detail ? ` / ${device.status_detail}` : ""}
+                </p>
               </div>
             ) : (
               <p className="small-muted">尚未绑定设备。</p>
             )}
-            <button className="secondary-button wide-button" disabled={busy} onClick={handleBindDevice} type="button">
-              <Camera size={18} />
-              绑定 Insta360
-            </button>
+            <div className="device-actions">
+              <button className="secondary-button" disabled={busy} onClick={handleBindDevice} type="button">
+                <Camera size={18} />
+                绑定 Insta360
+              </button>
+              <button className="secondary-button" disabled={busy || !device} onClick={handleDeviceOffline} type="button">
+                <Wifi size={18} />
+                模拟离线
+              </button>
+              <button className="primary-button" data-testid="sync-cache-button" disabled={busy || !device} onClick={handleSyncCache} type="button">
+                <RefreshCcw size={18} />
+                同步缓存
+              </button>
+            </div>
           </section>
         </aside>
 
@@ -491,10 +546,16 @@ export function App() {
                 <p className="eyebrow">Step 5</p>
                 <h2>周度健康报告与建议</h2>
               </div>
-              <button className="primary-button" data-testid="weekly-report-button" disabled={busy} onClick={handleWeekly} type="button">
-                <FileText size={18} />
-                生成周报
-              </button>
+              <div className="action-row no-margin">
+                <button className="primary-button" data-testid="weekly-report-button" disabled={busy} onClick={handleWeekly} type="button">
+                  <FileText size={18} />
+                  生成周报
+                </button>
+                <button className="secondary-button" data-testid="download-weekly-pdf-button" disabled={busy || !weeklyReport} onClick={handleDownloadWeeklyPdf} type="button">
+                  <FileText size={18} />
+                  导出 PDF
+                </button>
+              </div>
             </div>
             {weeklyReport ? (
               <div className="weekly-grid" data-testid="weekly-report">
@@ -553,12 +614,35 @@ export function App() {
             <div className="capture-strip">
               {(dashboard?.recent_captures ?? []).map((capture) => (
                 <article key={capture.capture_id}>
-                  <span>{capture.capture_mode}</span>
-                  <strong>{capture.analysis?.label ?? "待分析"}</strong>
-                  <p>{formatTime(capture.captured_at)}</p>
+                  <span>{capture.status}</span>
+                  <strong>{capture.analysis?.label ?? "待同步分析"}</strong>
+                  <p>{capture.capture_mode} / {formatTime(capture.captured_at)}</p>
                 </article>
               ))}
               {(dashboard?.recent_captures ?? []).length === 0 && <p className="empty-note">暂无采集记录。</p>}
+            </div>
+          </section>
+
+          <section className="panel-block history-panel">
+            <div className="section-heading compact">
+              <div>
+                <p className="eyebrow">History</p>
+                <h2>历史回溯</h2>
+              </div>
+            </div>
+            <div className="history-grid" data-testid="history-panel">
+              <div>
+                <strong>日度日志</strong>
+                {(dashboard?.daily_history ?? []).slice(0, 5).map((log) => (
+                  <p key={log.daily_log_id}>{log.date} / {log.overall_score}分 / {log.behavior_summary.total_records ?? 0}条</p>
+                ))}
+              </div>
+              <div>
+                <strong>周度报告</strong>
+                {(dashboard?.weekly_history ?? []).slice(0, 5).map((report) => (
+                  <p key={report.report_id}>{report.week_start} / {report.average_overall_score}分</p>
+                ))}
+              </div>
             </div>
           </section>
         </section>

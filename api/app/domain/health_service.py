@@ -214,6 +214,8 @@ def bind_device(payload: dict[str, Any]) -> dict[str, Any]:
         "auto_capture_enabled": payload["auto_capture_enabled"],
         "capture_interval_minutes": payload["capture_interval_minutes"],
         "capture_window": payload["capture_window"],
+        "offline_cache_count": 0,
+        "status_detail": None,
         "last_seen_at": timestamp,
         "created_at": timestamp,
         "updated_at": timestamp,
@@ -231,7 +233,8 @@ def update_device(device_id: str, payload: dict[str, Any]) -> dict[str, Any] | N
         if value is not None:
             device[key] = value
     device["updated_at"] = now_iso()
-    device["last_seen_at"] = device["updated_at"]
+    if device.get("status") == "online":
+        device["last_seen_at"] = device["updated_at"]
     persist_store()
     return device
 
@@ -285,6 +288,14 @@ def _behavior_for_capture(capture: dict[str, Any]) -> dict[str, Any]:
     return behavior
 
 
+def _analyze_capture(capture: dict[str, Any]) -> dict[str, Any]:
+    behavior = _behavior_for_capture(capture)
+    capture["analysis"] = behavior
+    capture["status"] = "analyzed"
+    capture["synced_at"] = now_iso()
+    return capture
+
+
 def create_capture(payload: dict[str, Any]) -> dict[str, Any]:
     user_id = payload.get("user_id") or DEFAULT_USER_ID
     device_id = payload.get("device_id")
@@ -292,6 +303,8 @@ def create_capture(payload: dict[str, Any]) -> dict[str, Any]:
         device = _device_for_user(user_id)
         device_id = device["device_id"] if device else None
     captured_at = _parse_dt(payload.get("captured_at")).isoformat()
+    device = store.devices.get(device_id) if device_id else None
+    should_cache = payload["capture_mode"] == "offline_cache" or (device is not None and device.get("status") != "online")
     capture = {
         "capture_id": new_id("capture"),
         "user_id": user_id,
@@ -299,22 +312,51 @@ def create_capture(payload: dict[str, Any]) -> dict[str, Any]:
         "capture_mode": payload["capture_mode"],
         "scene_hint": payload.get("scene_hint"),
         "image_url": payload.get("image_url") or f"/files/health-demo/{new_id('scene')}.jpg",
-        "status": "analyzed",
+        "status": "cached" if should_cache else "analyzed",
         "special_tag": "manual_priority" if payload["capture_mode"] == "manual" else None,
         "captured_at": captured_at,
         "synced_at": now_iso(),
+        "analysis": None,
     }
-    behavior = _behavior_for_capture(capture)
-    capture["analysis"] = behavior
     store.captures[capture["capture_id"]] = capture
 
-    if device_id and device_id in store.devices:
-        device = store.devices[device_id]
-        device["last_seen_at"] = capture["synced_at"]
-        device["status"] = "online"
-        device["updated_at"] = capture["synced_at"]
+    if should_cache:
+        if device:
+            device["offline_cache_count"] = int(device.get("offline_cache_count", 0)) + 1
+            device["status_detail"] = "Device offline; capture cached locally for later sync."
+            device["updated_at"] = capture["synced_at"]
+    else:
+        _analyze_capture(capture)
+        if device:
+            device["last_seen_at"] = capture["synced_at"]
+            device["status"] = "online"
+            device["status_detail"] = None
+            device["updated_at"] = capture["synced_at"]
     persist_store()
     return capture
+
+
+def sync_offline_captures(device_id: str) -> dict[str, Any] | None:
+    device = store.devices.get(device_id)
+    if not device:
+        return None
+    captures = sorted(
+        [
+            capture
+            for capture in store.captures.values()
+            if capture.get("device_id") == device_id and capture.get("status") == "cached"
+        ],
+        key=lambda item: item["captured_at"],
+    )
+    synced = [_analyze_capture(capture) for capture in captures]
+    timestamp = now_iso()
+    device["status"] = "online"
+    device["offline_cache_count"] = 0
+    device["status_detail"] = None
+    device["last_seen_at"] = timestamp
+    device["updated_at"] = timestamp
+    persist_store()
+    return {"device": device, "synced_captures": synced}
 
 
 def _captures_for_day(user_id: str, date_key: str) -> list[dict[str, Any]]:
@@ -450,6 +492,20 @@ def generate_weekly_report(user_id: str = DEFAULT_USER_ID, date_key: str | None 
     return report
 
 
+def list_daily_logs(user_id: str = DEFAULT_USER_ID, limit: int = 30) -> list[dict[str, Any]]:
+    logs = [log for log in store.daily_logs.values() if log["user_id"] == user_id]
+    return sorted(logs, key=lambda item: item["date"], reverse=True)[:limit]
+
+
+def list_weekly_reports(user_id: str = DEFAULT_USER_ID, limit: int = 12) -> list[dict[str, Any]]:
+    reports = [report for report in store.weekly_reports.values() if report["user_id"] == user_id]
+    return sorted(reports, key=lambda item: item["week_start"], reverse=True)[:limit]
+
+
+def get_weekly_report(report_id: str) -> dict[str, Any] | None:
+    return store.weekly_reports.get(report_id)
+
+
 def get_dashboard(user_id: str = DEFAULT_USER_ID) -> dict[str, Any]:
     profile = _profile_for_user(user_id)
     device = _device_for_user(user_id)
@@ -480,6 +536,8 @@ def get_dashboard(user_id: str = DEFAULT_USER_ID) -> dict[str, Any]:
         "recent_captures": captures[:8],
         "recent_behaviors": behaviors[:8],
         "metric_trend": metrics[:30],
+        "daily_history": list_daily_logs(user_id, 14),
+        "weekly_history": list_weekly_reports(user_id, 8),
         "status": {
             "profile_ready": profile is not None,
             "device_ready": device is not None,

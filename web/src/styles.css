@@ -363,6 +363,16 @@ input:focus {
   font-size: 12px;
 }
 
+.device-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.device-actions .primary-button {
+  grid-column: 1 / -1;
+}
+
 .scene-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -392,6 +402,10 @@ input:focus {
   flex-wrap: wrap;
   gap: 10px;
   margin: 14px 0;
+}
+
+.action-row.no-margin {
+  margin: 0;
 }
 
 .behavior-list {
@@ -621,6 +635,32 @@ input:focus {
   font-size: 12px;
 }
 
+.history-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.history-grid > div {
+  padding: 12px;
+  background: #f8faf6;
+  border: 1px solid #dfe6da;
+  border-radius: 8px;
+}
+
+.history-grid strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #20372f;
+}
+
+.history-grid p {
+  margin: 6px 0 0;
+  color: #607069;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 .system-banner,
 .state-row,
 .check-item,
@@ -783,7 +823,9 @@ input:focus {
   .score-grid,
   .scene-grid,
   .capture-strip,
-  .form-pair {
+  .form-pair,
+  .device-actions,
+  .history-grid {
     grid-template-columns: 1fr;
   }
 

@@ -99,3 +99,51 @@ def test_health_demo_flow() -> None:
     assert len(body["captures"]) == 6
     assert body["today_log"]["behavior_summary"]["total_records"] == 6
     assert body["weekly_report"]["average_overall_score"] > 0
+
+
+def test_device_offline_cache_history_and_weekly_pdf() -> None:
+    demo = client.post("/api/health/demo")
+    assert demo.status_code == 200
+    device_id = demo.json()["device"]["device_id"]
+
+    offline = client.patch(
+        f"/api/health/devices/{device_id}",
+        json={"status": "offline", "battery_percent": 12, "status_detail": "network lost"},
+    )
+    assert offline.status_code == 200
+    assert offline.json()["status"] == "offline"
+
+    cached = client.post(
+        "/api/health/captures",
+        json={
+            "user_id": "demo_user",
+            "device_id": device_id,
+            "capture_mode": "auto",
+            "scene_hint": "sitting",
+        },
+    )
+    assert cached.status_code == 200
+    cached_body = cached.json()
+    assert cached_body["status"] == "cached"
+    assert cached_body["analysis"] is None
+
+    synced = client.post(f"/api/health/devices/{device_id}/sync")
+    assert synced.status_code == 200
+    synced_body = synced.json()
+    assert synced_body["device"]["status"] == "online"
+    assert synced_body["device"]["offline_cache_count"] == 0
+    assert len(synced_body["synced_captures"]) == 1
+    assert synced_body["synced_captures"][0]["status"] == "analyzed"
+
+    daily_history = client.get("/api/health/daily/demo_user")
+    assert daily_history.status_code == 200
+    assert len(daily_history.json()) >= 1
+
+    weekly_history = client.get("/api/health/weekly/demo_user")
+    assert weekly_history.status_code == 200
+    report_id = weekly_history.json()[0]["report_id"]
+
+    pdf = client.get(f"/api/health/weekly/reports/{report_id}/pdf")
+    assert pdf.status_code == 200
+    assert pdf.headers["content-type"] == "application/pdf"
+    assert pdf.content.startswith(b"%PDF")

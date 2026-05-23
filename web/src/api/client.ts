@@ -1,13 +1,23 @@
 import type {
+  CompanionResponse,
   CaptureCreatePayload,
   CaptureResponse,
   DailyLogResponse,
   DemoFlowResponse,
   DeviceBindPayload,
   DeviceResponse,
+  ExportManifest,
+  ExportResponse,
+  FrameAsset,
   HealthDashboard,
   HealthProfilePayload,
   HealthProfileResponse,
+  MediaAsset,
+  OfflineSyncResponse,
+  RoutePlan,
+  TripDetail,
+  TripSummary,
+  UserStatus,
   WeeklyReportResponse
 } from "../types";
 
@@ -102,6 +112,20 @@ export async function bindHealthDevice(payload: DeviceBindPayload) {
   });
 }
 
+export async function updateHealthDevice(
+  deviceId: string,
+  payload: Partial<Pick<DeviceResponse, "auto_capture_enabled" | "capture_interval_minutes" | "capture_window" | "status" | "battery_percent" | "storage_free_gb" | "status_detail">>
+) {
+  return request<DeviceResponse>(`/api/health/devices/${encodeURIComponent(deviceId)}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function syncHealthDevice(deviceId: string) {
+  return request<OfflineSyncResponse>(`/api/health/devices/${encodeURIComponent(deviceId)}/sync`, { method: "POST" });
+}
+
 export async function createHealthCapture(payload: CaptureCreatePayload) {
   return request<CaptureResponse>("/api/health/captures", {
     method: "POST",
@@ -117,6 +141,99 @@ export async function generateWeeklyReport(userId = "demo_user") {
   return request<WeeklyReportResponse>(`/api/health/weekly/${encodeURIComponent(userId)}`, { method: "POST" });
 }
 
+export async function downloadWeeklyReportPdf(reportId: string) {
+  const response = await fetch(`${API_BASE_URL}/api/health/weekly/reports/${encodeURIComponent(reportId)}/pdf`);
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(detail || `Request failed: ${response.status}`);
+  }
+  return response.blob();
+}
+
 export async function runHealthDemo(userId = "demo_user") {
   return request<DemoFlowResponse>(`/api/health/demo?user_id=${encodeURIComponent(userId)}`, { method: "POST" });
+}
+
+export async function createTrip(payload: {
+  destination: string;
+  duration_minutes: number;
+  preferences: string[];
+  use_panorama_camera: boolean;
+}) {
+  return request<{ trip_id: string; status: string }>("/api/trips", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function listTrips(limit = 5) {
+  return request<TripSummary[]>(`/api/trips?limit=${limit}`);
+}
+
+export async function generateRoute(tripId: string) {
+  return request<RoutePlan>(`/api/trips/${tripId}/route`, { method: "POST" });
+}
+
+export async function getTripDetail(tripId: string) {
+  return request<TripDetail>(`/api/trips/${tripId}`);
+}
+
+export async function rerouteTrip(tripId: string, status: UserStatus) {
+  return request<RoutePlan>(`/api/trips/${tripId}/reroute`, {
+    method: "POST",
+    body: JSON.stringify({ status_action: status, remaining_minutes: 80 })
+  });
+}
+
+export async function uploadMedia(tripId: string, file: File) {
+  const form = new FormData();
+  form.append("file", file);
+  return request<MediaAsset>(`/api/trips/${tripId}/media`, {
+    method: "POST",
+    body: form
+  });
+}
+
+export async function createDemoMedia(tripId: string) {
+  return request<MediaAsset>(`/api/trips/${tripId}/media/demo`, { method: "POST" });
+}
+
+export async function extractFrames(mediaId: string) {
+  return request<{ job_id: string; status: string; frames: FrameAsset[] }>(`/api/media/${mediaId}/extract-frames`, {
+    method: "POST"
+  });
+}
+
+export async function markFrame(frameId: string, marked: boolean) {
+  return request<FrameAsset>(`/api/frames/${frameId}/mark`, {
+    method: "POST",
+    body: JSON.stringify({
+      marked,
+      reason: marked ? "user marked favorite moment" : null
+    })
+  });
+}
+
+export async function analyzeCompanion(tripId: string, payload: { frame_id?: string; route_node_id?: string; user_status: UserStatus }) {
+  return request<CompanionResponse>(`/api/trips/${tripId}/companion/analyze`, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function createExport(tripId: string) {
+  return request<ExportResponse>(`/api/trips/${tripId}/exports`, { method: "POST" });
+}
+
+export async function getExportManifest(exportId: string) {
+  return request<ExportManifest>(`/api/exports/${exportId}/manifest`);
+}
+
+export async function getExportBundle(exportId: string) {
+  const response = await fetch(`${API_BASE_URL}/api/exports/${exportId}/bundle`);
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(detail || `Request failed: ${response.status}`);
+  }
+  return response.blob();
 }

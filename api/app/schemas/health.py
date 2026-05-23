@@ -58,6 +58,10 @@ class DeviceSettingsRequest(BaseModel):
     auto_capture_enabled: bool | None = None
     capture_interval_minutes: int | None = Field(default=None, ge=5, le=30)
     capture_window: str | None = Field(default=None, max_length=30)
+    status: str | None = Field(default=None, pattern="^(online|offline|low_battery|fault)$")
+    battery_percent: int | None = Field(default=None, ge=0, le=100)
+    storage_free_gb: float | None = Field(default=None, ge=0)
+    status_detail: str | None = Field(default=None, max_length=200)
 
 
 class DeviceResponse(BaseModel):
@@ -73,6 +77,8 @@ class DeviceResponse(BaseModel):
     auto_capture_enabled: bool
     capture_interval_minutes: int
     capture_window: str
+    offline_cache_count: int = 0
+    status_detail: str | None = None
     last_seen_at: str
     created_at: str
     updated_at: str
@@ -116,6 +122,11 @@ class CaptureResponse(BaseModel):
     analysis: BehaviorRecordResponse | None = None
 
 
+class OfflineSyncResponse(BaseModel):
+    device: DeviceResponse
+    synced_captures: list[CaptureResponse]
+
+
 class DailyLogResponse(BaseModel):
     daily_log_id: str
     user_id: str
@@ -155,6 +166,8 @@ class HealthDashboardResponse(BaseModel):
     recent_captures: list[CaptureResponse]
     recent_behaviors: list[BehaviorRecordResponse]
     metric_trend: list[HealthMetricResponse]
+    daily_history: list[DailyLogResponse] = Field(default_factory=list)
+    weekly_history: list[WeeklyReportResponse] = Field(default_factory=list)
     status: dict
 
 
