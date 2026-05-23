@@ -174,6 +174,10 @@ manifest 包含：
 
 ## 8. 运行与验证
 
+部署、CI 和上线检查详见：
+
+- [deployment.md](deployment.md)
+
 本地启动：
 
 ```powershell

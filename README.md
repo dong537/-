@@ -28,6 +28,7 @@
 - [docs/technical-stack.md](docs/technical-stack.md)
 - [docs/api-contract.md](docs/api-contract.md)
 - [docs/data-model.md](docs/data-model.md)
+- [docs/deployment.md](docs/deployment.md)
 
 ## 启动方式
 
