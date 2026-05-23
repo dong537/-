@@ -18,12 +18,19 @@ def test_health_and_config() -> None:
     health = client.get("/health")
     assert health.status_code == 200
     assert health.json()["status"] == "ok"
+    assert health.headers["x-request-id"]
+
+    ready = client.get("/ready")
+    assert ready.status_code in {200, 503}
+    assert "data_dir_writable" in ready.json()["checks"]
 
     config = client.get("/api/dev/config")
     assert config.status_code == 200
     body = config.json()
     assert body["ai_mode"] == "mock"
     assert body["map_mode"] == "mock"
+    assert body["max_upload_bytes"] > 0
+    assert body["request_log_enabled"] is True
 
 
 def test_full_demo_flow() -> None:
@@ -130,3 +137,23 @@ def test_reset_demo_state() -> None:
 
     after = client.get("/api/dev/config").json()
     assert after["counts"]["trips"] == 0
+
+
+def test_upload_size_limit(monkeypatch) -> None:
+    monkeypatch.setattr("app.domain.media_service.settings.max_upload_bytes", 4)
+    trip = client.post(
+        "/api/trips",
+        json={
+            "destination": "Hangzhou West Lake",
+            "duration_minutes": 120,
+            "preferences": ["scenery"],
+            "use_panorama_camera": True,
+        },
+    )
+    assert trip.status_code == 200
+
+    upload = client.post(
+        f"/api/trips/{trip.json()['trip_id']}/media",
+        files={"file": ("clip.mp4", b"too-large", "video/mp4")},
+    )
+    assert upload.status_code == 413

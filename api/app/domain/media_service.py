@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import html
-import shutil
 import subprocess
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import UploadFile
+from fastapi import HTTPException, UploadFile
 
 from app.core.config import settings
 from app.domain.store import new_id, now_iso, record_event, store
@@ -26,11 +25,25 @@ def _safe_name(filename: str) -> str:
     return f"{uuid4().hex}{suffix}"
 
 
+async def _write_upload_with_limit(upload: UploadFile, target: Path) -> None:
+    total = 0
+    chunk_size = 1024 * 1024
+    try:
+        with target.open("wb") as buffer:
+            while chunk := await upload.read(chunk_size):
+                total += len(chunk)
+                if total > settings.max_upload_bytes:
+                    raise HTTPException(status_code=413, detail="Uploaded file exceeds MAX_UPLOAD_BYTES")
+                buffer.write(chunk)
+    except Exception:
+        target.unlink(missing_ok=True)
+        raise
+
+
 async def save_upload(trip_id: str, upload: UploadFile) -> dict:
     filename = _safe_name(upload.filename or "media.bin")
     target = settings.uploads_dir / filename
-    with target.open("wb") as buffer:
-        shutil.copyfileobj(upload.file, buffer)
+    await _write_upload_with_limit(upload, target)
     suffix = target.suffix.lower()
     kind = "image" if suffix in IMAGE_EXTENSIONS else "video" if suffix in VIDEO_EXTENSIONS else "file"
     media_id = new_id("media")

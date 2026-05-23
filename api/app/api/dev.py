@@ -17,6 +17,8 @@ def get_runtime_config() -> dict:
         "app_base_url": settings.app_base_url,
         "frame_extract_interval_seconds": settings.frame_interval_seconds,
         "max_frame_analysis_count": settings.max_frame_analysis_count,
+        "max_upload_bytes": settings.max_upload_bytes,
+        "request_log_enabled": settings.request_log_enabled,
         "text_model": settings.openai_text_model or "mock",
         "vision_model": settings.openai_vision_model or "mock",
         "counts": {

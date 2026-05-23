@@ -9,6 +9,8 @@ services:
       DATA_DIR: /data
       FRAME_EXTRACT_INTERVAL_SECONDS: ${FRAME_EXTRACT_INTERVAL_SECONDS:-4}
       MAX_FRAME_ANALYSIS_COUNT: ${MAX_FRAME_ANALYSIS_COUNT:-12}
+      MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-262144000}
+      REQUEST_LOG_ENABLED: ${REQUEST_LOG_ENABLED:-true}
       AI_PROVIDER: ${AI_PROVIDER:-mock}
       MAP_PROVIDER: ${MAP_PROVIDER:-mock}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
@@ -21,7 +23,7 @@ services:
     volumes:
       - panorama_data:/data
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8010/health', timeout=3).read()"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8010/ready', timeout=3).read()"]
       interval: 15s
       timeout: 5s
       retries: 5

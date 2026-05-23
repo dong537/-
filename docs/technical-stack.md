@@ -98,6 +98,7 @@ Local MVP Storage
 | 能力 | Endpoint |
 | --- | --- |
 | 健康检查 | `GET /health` |
+| 就绪检查 | `GET /ready` |
 | 运行配置 | `GET /api/dev/config` |
 | 重置演示数据 | `POST /api/dev/reset` |
 | 创建旅行 | `POST /api/trips` |
@@ -231,6 +232,8 @@ node .\node_modules\vite\bin\vite.js build
 | `DATA_DIR` | `./data` | 本地素材目录 |
 | `FRAME_EXTRACT_INTERVAL_SECONDS` | `4` | 视频抽帧间隔 |
 | `MAX_FRAME_ANALYSIS_COUNT` | `12` | 最大抽帧数量 |
+| `MAX_UPLOAD_BYTES` | `262144000` | 单个上传文件大小上限 |
+| `REQUEST_LOG_ENABLED` | `true` | 是否输出请求完成日志 |
 | `AI_PROVIDER` | `mock` | AI Provider |
 | `MAP_PROVIDER` | `mock` | 地图 Provider |
 | `OPENAI_API_KEY` | 空 | OpenAI 接入 |

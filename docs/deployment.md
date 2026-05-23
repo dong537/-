@@ -197,6 +197,8 @@ APP_BASE_URL=https://your-api-domain.com
 DATA_DIR=/var/lib/panorama-companion/data
 FRAME_EXTRACT_INTERVAL_SECONDS=4
 MAX_FRAME_ANALYSIS_COUNT=12
+MAX_UPLOAD_BYTES=262144000
+REQUEST_LOG_ENABLED=true
 AI_PROVIDER=mock
 MAP_PROVIDER=mock
 OPENAI_API_KEY=
@@ -308,6 +310,7 @@ object-storage
 后端建议监控：
 
 - `/health` 状态。
+- `/ready` 就绪状态。
 - API 5xx 错误率。
 - 抽帧失败率。
 - 导出失败率。

@@ -107,6 +107,8 @@ export async function getRuntimeConfig() {
     app_base_url: string;
     frame_extract_interval_seconds: number;
     max_frame_analysis_count: number;
+    max_upload_bytes: number;
+    request_log_enabled: boolean;
     text_model: string;
     vision_model: string;
   }>("/api/dev/config");

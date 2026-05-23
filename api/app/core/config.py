@@ -15,6 +15,8 @@ class Settings:
     data_dir = Path(os.getenv("DATA_DIR", "./data")).resolve()
     frame_interval_seconds = int(os.getenv("FRAME_EXTRACT_INTERVAL_SECONDS", "4"))
     max_frame_analysis_count = int(os.getenv("MAX_FRAME_ANALYSIS_COUNT", "12"))
+    max_upload_bytes = int(os.getenv("MAX_UPLOAD_BYTES", str(250 * 1024 * 1024)))
+    request_log_enabled = os.getenv("REQUEST_LOG_ENABLED", "true").lower() not in {"0", "false", "no"}
     ai_provider = os.getenv("AI_PROVIDER", "mock")
     map_provider = os.getenv("MAP_PROVIDER", "mock")
     openai_api_key = os.getenv("OPENAI_API_KEY", "")

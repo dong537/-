@@ -12,6 +12,8 @@ http://127.0.0.1:8010
 - 上传素材使用 `multipart/form-data`。
 - 成功响应默认返回 JSON，ZIP 素材包返回 `application/zip`。
 - 未找到资源时返回 `404`。
+- 上传文件超过 `MAX_UPLOAD_BYTES` 时返回 `413`。
+- 所有响应会带有 `X-Request-ID`，便于日志排查。
 - MVP 使用内存状态，重启服务后业务数据会丢失。
 - `/files/*` 暴露本地 `api/data` 下的上传素材、抽帧和导出文件。
 
@@ -34,6 +36,27 @@ http://127.0.0.1:8010
 }
 ```
 
+### `GET /ready`
+
+用于部署健康检查，确认数据目录可写、素材目录存在、FFmpeg 可用。
+
+响应示例：
+
+```json
+{
+  "status": "ready",
+  "checks": {
+    "data_dir_writable": true,
+    "uploads_dir_exists": true,
+    "frames_dir_exists": true,
+    "exports_dir_exists": true,
+    "ffmpeg_available": true
+  }
+}
+```
+
+当任一检查失败时返回 `503`，`status` 为 `degraded`。
+
 ## 3. 开发辅助
 
 ### `GET /api/dev/config`
@@ -52,6 +75,8 @@ http://127.0.0.1:8010
   "app_base_url": "http://127.0.0.1:8010",
   "frame_extract_interval_seconds": 4,
   "max_frame_analysis_count": 12,
+  "max_upload_bytes": 262144000,
+  "request_log_enabled": true,
   "counts": {
     "trips": 1,
     "media": 1,
@@ -216,6 +241,10 @@ file=<image/video file>
 ```
 
 成功后会记录 `media_uploaded` 事件。
+
+说明：
+- 单文件大小受 `MAX_UPLOAD_BYTES` 限制，默认 `262144000` 字节。
+- 超过限制时返回 `413`，并删除已写入的临时文件。
 
 ### `POST /api/trips/{trip_id}/media/demo`
 
