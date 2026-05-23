@@ -77,6 +77,11 @@ http://127.0.0.1:8010
   "max_frame_analysis_count": 12,
   "max_upload_bytes": 262144000,
   "request_log_enabled": true,
+  "store_persistence_enabled": true,
+  "state_file": "C:\\path\\to\\api\\data\\state.json",
+  "store_loaded_at": null,
+  "store_saved_at": "2026-05-23T00:00:00+00:00",
+  "store_persistence_error": null,
   "counts": {
     "trips": 1,
     "media": 1,

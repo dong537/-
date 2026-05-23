@@ -4,7 +4,7 @@
 
 ## 1. 当前存储方案
 
-MVP 使用 `MemoryStore` 保存运行时数据，并使用本地文件系统保存素材文件。
+MVP 使用 `MemoryStore` 保存运行时数据，并使用本地文件系统保存素材文件。当前实现会把 `MemoryStore` 快照写入 `STATE_FILE`，默认路径为 `api/data/state.json`。
 
 ```text
 MemoryStore
@@ -19,7 +19,8 @@ MemoryStore
 api/data
   ├─ uploads
   ├─ frames
-  └─ exports
+  ├─ exports
+  └─ state.json
 ```
 
 当前实现文件：
@@ -31,7 +32,7 @@ api/app/domain/store.py
 说明：
 
 - `MemoryStore` 适合黑客松演示，不适合生产持久化。
-- 服务重启后内存数据会丢失。
+- 服务重启后会尝试从 `state.json` 恢复内存数据。
 - `api/data` 下的文件由 `.gitignore` 忽略，只保留 `.gitkeep`。
 - `POST /api/dev/reset` 可重置内存状态。
 

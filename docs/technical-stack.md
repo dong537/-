@@ -230,6 +230,8 @@ node .\node_modules\vite\bin\vite.js build
 | `WEB_ORIGIN` | `http://127.0.0.1:5173` | CORS 来源 |
 | `APP_BASE_URL` | `http://127.0.0.1:8010` | 静态文件 URL 前缀 |
 | `DATA_DIR` | `./data` | 本地素材目录 |
+| `STATE_FILE` | `./data/state.json` | MemoryStore JSON 快照路径 |
+| `STORE_PERSISTENCE_ENABLED` | `true` | 是否启用本地状态快照 |
 | `FRAME_EXTRACT_INTERVAL_SECONDS` | `4` | 视频抽帧间隔 |
 | `MAX_FRAME_ANALYSIS_COUNT` | `12` | 最大抽帧数量 |
 | `MAX_UPLOAD_BYTES` | `262144000` | 单个上传文件大小上限 |

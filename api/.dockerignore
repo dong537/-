@@ -6,6 +6,7 @@ __pycache__
 data/uploads/*
 data/frames/*
 data/exports/*
+data/state.json
 tests
 pytest.ini
 requirements-dev.txt

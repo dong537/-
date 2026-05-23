@@ -109,6 +109,11 @@ export async function getRuntimeConfig() {
     max_frame_analysis_count: number;
     max_upload_bytes: number;
     request_log_enabled: boolean;
+    store_persistence_enabled: boolean;
+    state_file: string;
+    store_loaded_at: string | null;
+    store_saved_at: string | null;
+    store_persistence_error: string | null;
     text_model: string;
     vision_model: string;
   }>("/api/dev/config");

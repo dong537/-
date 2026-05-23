@@ -3,6 +3,7 @@ from zipfile import ZipFile
 
 from fastapi.testclient import TestClient
 
+from app.domain import store as store_module
 from app.domain.store import reset_store
 from app.main import app
 
@@ -22,7 +23,10 @@ def test_health_and_config() -> None:
 
     ready = client.get("/ready")
     assert ready.status_code in {200, 503}
-    assert "data_dir_writable" in ready.json()["checks"]
+    checks = ready.json()["checks"]
+    assert "data_dir_writable" in checks
+    assert "state_file_writable" in checks
+    assert "store_persistence_ok" in checks
 
     config = client.get("/api/dev/config")
     assert config.status_code == 200
@@ -31,6 +35,7 @@ def test_health_and_config() -> None:
     assert body["map_mode"] == "mock"
     assert body["max_upload_bytes"] > 0
     assert body["request_log_enabled"] is True
+    assert body["store_persistence_enabled"] is True
 
 
 def test_full_demo_flow() -> None:
@@ -157,3 +162,31 @@ def test_upload_size_limit(monkeypatch) -> None:
         files={"file": ("clip.mp4", b"too-large", "video/mp4")},
     )
     assert upload.status_code == 413
+
+
+def test_store_persistence_round_trip(tmp_path, monkeypatch) -> None:
+    state_file = tmp_path / "state.json"
+    monkeypatch.setattr(store_module.settings, "state_file", state_file)
+    monkeypatch.setattr(store_module.settings, "store_persistence_enabled", True)
+
+    reset_store(clear_files=False)
+    trip = client.post(
+        "/api/trips",
+        json={
+            "destination": "Hangzhou West Lake",
+            "duration_minutes": 120,
+            "preferences": ["scenery"],
+            "use_panorama_camera": True,
+        },
+    )
+    assert trip.status_code == 200
+    trip_id = trip.json()["trip_id"]
+    assert state_file.exists()
+
+    for name in store_module.STORE_COLLECTIONS:
+        getattr(store_module.store, name).clear()
+    assert trip_id not in store_module.store.trips
+
+    assert store_module.load_store() is True
+    assert trip_id in store_module.store.trips
+    assert any(event["trip_id"] == trip_id for event in store_module.store.events.values())

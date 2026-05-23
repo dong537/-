@@ -11,5 +11,6 @@ __pycache__
 api/data/uploads/*
 api/data/frames/*
 api/data/exports/*
+api/data/state.json
 web/node_modules
 web/dist

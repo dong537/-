@@ -13,6 +13,8 @@ class Settings:
     app_base_url = os.getenv("APP_BASE_URL", "http://127.0.0.1:8010")
     web_origin = os.getenv("WEB_ORIGIN", "http://127.0.0.1:5173")
     data_dir = Path(os.getenv("DATA_DIR", "./data")).resolve()
+    state_file = Path(os.getenv("STATE_FILE", str(data_dir / "state.json"))).resolve()
+    store_persistence_enabled = os.getenv("STORE_PERSISTENCE_ENABLED", "true").lower() not in {"0", "false", "no"}
     frame_interval_seconds = int(os.getenv("FRAME_EXTRACT_INTERVAL_SECONDS", "4"))
     max_frame_analysis_count = int(os.getenv("MAX_FRAME_ANALYSIS_COUNT", "12"))
     max_upload_bytes = int(os.getenv("MAX_UPLOAD_BYTES", str(250 * 1024 * 1024)))

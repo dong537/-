@@ -15,6 +15,7 @@ from app.api.exports import router as exports_router
 from app.api.media import router as media_router
 from app.api.trips import router as trips_router
 from app.core.config import settings
+from app.domain.store import store
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("panorama-companion")
@@ -79,6 +80,19 @@ def _directory_writable() -> bool:
         return False
 
 
+def _state_file_writable() -> bool:
+    if not settings.store_persistence_enabled:
+        return True
+    probe = settings.state_file.with_name(f"{settings.state_file.name}.write-check")
+    try:
+        settings.state_file.parent.mkdir(parents=True, exist_ok=True)
+        probe.write_text("ok", encoding="utf-8")
+        probe.unlink(missing_ok=True)
+        return True
+    except OSError:
+        return False
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {
@@ -98,6 +112,8 @@ def ready() -> JSONResponse:
         "uploads_dir_exists": settings.uploads_dir.exists(),
         "frames_dir_exists": settings.frames_dir.exists(),
         "exports_dir_exists": settings.exports_dir.exists(),
+        "state_file_writable": _state_file_writable(),
+        "store_persistence_ok": store.persistence_error is None,
         "ffmpeg_available": shutil.which("ffmpeg") is not None,
     }
     status = "ready" if all(checks.values()) else "degraded"

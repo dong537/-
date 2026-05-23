@@ -8,7 +8,7 @@ from uuid import uuid4
 from fastapi import HTTPException, UploadFile
 
 from app.core.config import settings
-from app.domain.store import new_id, now_iso, record_event, store
+from app.domain.store import new_id, now_iso, persist_store, record_event, store
 
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg"}
@@ -162,6 +162,7 @@ def extract_frames(media_id: str) -> tuple[dict, list[dict]]:
         job["status"] = "succeeded"
         job["message"] = "已复用已有抽帧"
         job["result"] = {"frame_count": len(existing)}
+        persist_store()
         return job, existing
 
     frames: list[dict] = []

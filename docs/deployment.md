@@ -195,6 +195,8 @@ APP_ENV=production
 WEB_ORIGIN=https://your-web-domain.com
 APP_BASE_URL=https://your-api-domain.com
 DATA_DIR=/var/lib/panorama-companion/data
+STATE_FILE=/var/lib/panorama-companion/data/state.json
+STORE_PERSISTENCE_ENABLED=true
 FRAME_EXTRACT_INTERVAL_SECONDS=4
 MAX_FRAME_ANALYSIS_COUNT=12
 MAX_UPLOAD_BYTES=262144000
@@ -223,6 +225,7 @@ VITE_AMAP_WEB_KEY=
 api/data/uploads
 api/data/frames
 api/data/exports
+api/data/state.json
 ```
 
 生产化建议：
@@ -244,6 +247,8 @@ Docker Compose 模式下文件持久化到命名卷：
 ```text
 panorama_data
 ```
+
+当前 MVP 会把 `MemoryStore` 自动保存到 `STATE_FILE`，服务重启后可恢复 trips、routes、media、frames、jobs、exports 和 events。生产化时仍建议迁移到 SQLite/PostgreSQL。
 
 ## 9. FFmpeg
 

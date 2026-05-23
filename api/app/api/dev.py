@@ -19,6 +19,11 @@ def get_runtime_config() -> dict:
         "max_frame_analysis_count": settings.max_frame_analysis_count,
         "max_upload_bytes": settings.max_upload_bytes,
         "request_log_enabled": settings.request_log_enabled,
+        "store_persistence_enabled": settings.store_persistence_enabled,
+        "state_file": str(settings.state_file),
+        "store_loaded_at": store.loaded_at,
+        "store_saved_at": store.saved_at,
+        "store_persistence_error": store.persistence_error,
         "text_model": settings.openai_text_model or "mock",
         "vision_model": settings.openai_vision_model or "mock",
         "counts": {

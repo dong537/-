@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+import json
 import shutil
 from typing import Any
 from uuid import uuid4
@@ -17,6 +18,10 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+STORE_SCHEMA = "panorama-companion.memory-store.v1"
+STORE_COLLECTIONS = ("trips", "routes", "media", "frames", "jobs", "exports", "events")
+
+
 @dataclass
 class MemoryStore:
     trips: dict[str, dict[str, Any]] = field(default_factory=dict)
@@ -26,9 +31,61 @@ class MemoryStore:
     jobs: dict[str, dict[str, Any]] = field(default_factory=dict)
     exports: dict[str, dict[str, Any]] = field(default_factory=dict)
     events: dict[str, dict[str, Any]] = field(default_factory=dict)
+    loaded_at: str | None = None
+    saved_at: str | None = None
+    persistence_error: str | None = None
 
 
 store = MemoryStore()
+
+
+def _collection_snapshot() -> dict[str, dict[str, dict[str, Any]]]:
+    return {name: getattr(store, name) for name in STORE_COLLECTIONS}
+
+
+def persist_store() -> bool:
+    if not settings.store_persistence_enabled:
+        return False
+
+    saved_at = now_iso()
+    payload = {
+        "schema": STORE_SCHEMA,
+        "saved_at": saved_at,
+        "collections": _collection_snapshot(),
+    }
+    try:
+        settings.state_file.parent.mkdir(parents=True, exist_ok=True)
+        temp_path = settings.state_file.with_name(f"{settings.state_file.name}.tmp")
+        temp_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        temp_path.replace(settings.state_file)
+    except (OSError, TypeError, ValueError) as exc:
+        store.persistence_error = str(exc)
+        return False
+
+    store.saved_at = saved_at
+    store.persistence_error = None
+    return True
+
+
+def load_store() -> bool:
+    if not settings.store_persistence_enabled or not settings.state_file.exists():
+        return False
+
+    try:
+        payload = json.loads(settings.state_file.read_text(encoding="utf-8"))
+        collections = payload.get("collections", {})
+        for name in STORE_COLLECTIONS:
+            target = getattr(store, name)
+            target.clear()
+            target.update(collections.get(name, {}))
+    except (OSError, json.JSONDecodeError, TypeError, AttributeError) as exc:
+        store.persistence_error = str(exc)
+        return False
+
+    store.loaded_at = now_iso()
+    store.saved_at = payload.get("saved_at")
+    store.persistence_error = None
+    return True
 
 
 def reset_store(clear_files: bool = False) -> None:
@@ -50,6 +107,7 @@ def reset_store(clear_files: bool = False) -> None:
                         shutil.rmtree(item)
                     else:
                         item.unlink()
+    persist_store()
 
 
 def record_event(trip_id: str, event_type: str, title: str, detail: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -64,9 +122,13 @@ def record_event(trip_id: str, event_type: str, title: str, detail: str, payload
         "created_at": now_iso(),
     }
     store.events[event_id] = event
+    persist_store()
     return event
 
 
 def get_trip_events(trip_id: str) -> list[dict[str, Any]]:
     events = [event for event in store.events.values() if event["trip_id"] == trip_id]
     return sorted(events, key=lambda event: event["created_at"])
+
+
+load_store()
