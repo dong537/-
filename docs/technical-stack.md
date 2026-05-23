@@ -61,6 +61,10 @@ Local MVP Storage
 
 ## 4. 后端技术栈
 
+核心数据模型与未来数据库设计见：
+
+- [data-model.md](data-model.md)
+
 | 模块 | 技术 | 当前用途 |
 | --- | --- | --- |
 | Web 框架 | FastAPI | REST API、CORS、静态文件服务 |
