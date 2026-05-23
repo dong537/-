@@ -1,0 +1,11 @@
+.venv
+__pycache__
+*.pyc
+*.log
+.env
+data/uploads/*
+data/frames/*
+data/exports/*
+tests
+pytest.ini
+requirements-dev.txt

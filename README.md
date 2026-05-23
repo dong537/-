@@ -22,6 +22,7 @@
 - 媒体处理：FFmpeg，不可用时自动使用演示帧兜底
 - 存储：MVP 使用本地文件和内存数据
 - 地图：无 Key 时使用演示地图，有 `VITE_AMAP_WEB_KEY` 时前端可加载高德地图
+- 部署：Docker Compose 可启动 Web + API + 持久化数据卷
 
 完整技术栈、架构边界和后续扩展见：
 
@@ -57,6 +58,32 @@
 - API: http://127.0.0.1:8010
 
 说明：本项目默认使用 `8010` 作为 API 端口，避开本机可能已占用的 `8000`。
+
+## Docker 启动
+
+仓库已提供 API/Web 镜像和 Compose 编排：
+
+```powershell
+Copy-Item .env.example .env
+docker compose up --build
+```
+
+默认地址：
+
+- Web: http://127.0.0.1:5173
+- API: http://127.0.0.1:8010
+
+停止并保留数据卷：
+
+```powershell
+docker compose down
+```
+
+清理本地演示数据卷：
+
+```powershell
+docker compose down -v
+```
 
 ## 手动启动
 

@@ -76,6 +76,7 @@ Local MVP Storage
 | 媒体处理 | FFmpeg | 视频抽帧，失败时 fallback 到演示帧 |
 | 导出 | Python zipfile | 生成 ZIP 素材包 |
 | 存储 | 内存 + 本地文件 | 黑客松 MVP 数据和素材管理 |
+| 容器化 | Docker + Docker Compose | 单机部署、CI 镜像构建验证 |
 
 后端关键文件：
 
@@ -184,6 +185,13 @@ manifest 包含：
 .\scripts\start-dev.ps1
 ```
 
+Docker 启动：
+
+```powershell
+Copy-Item .env.example .env
+docker compose up --build
+```
+
 后端测试：
 
 ```powershell
@@ -247,6 +255,7 @@ node .\node_modules\vite\bin\vite.js build
 - 增加真实地图路线搜索和 POI 推荐。
 - 增加 OpenAI Vision 画面理解。
 - 增加 ZIP 包内视频草稿说明文件或 EDL。
+- 为 Docker Compose 增加 postgres、redis、worker 和对象存储服务。
 
 中期：
 

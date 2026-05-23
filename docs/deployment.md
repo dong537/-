@@ -70,7 +70,7 @@ CI 配置：
 .github/workflows/ci.yml
 ```
 
-当前 CI 包含两个 Job：
+当前 CI 包含三个 Job：
 
 - `API tests`
   - Python 3.12
@@ -80,6 +80,10 @@ CI 配置：
   - Node 22
   - 执行 `npm ci`
   - 执行 `npm run build`
+- `Docker image builds`
+  - 构建 `api/Dockerfile`
+  - 构建 `web/Dockerfile`
+  - 验证容器镜像构建链路没有缺文件或依赖错误
 
 触发条件：
 
@@ -137,7 +141,52 @@ WEB_ORIGIN=https://your-web-domain.com
 APP_BASE_URL=https://your-api-domain.com
 ```
 
-## 6. 环境变量清单
+## 6. Docker Compose 部署
+
+仓库已提供基础容器化配置：
+
+```text
+api/Dockerfile
+web/Dockerfile
+web/nginx.conf
+docker-compose.yml
+```
+
+本地构建并启动：
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+默认端口：
+
+```text
+Web: http://127.0.0.1:5173
+API: http://127.0.0.1:8010
+```
+
+停止服务：
+
+```bash
+docker compose down
+```
+
+清理演示数据卷：
+
+```bash
+docker compose down -v
+```
+
+Compose 当前包含：
+
+- `api`：FastAPI + Uvicorn，镜像内预装 FFmpeg。
+- `web`：Vite 静态构建产物 + Nginx。
+- `panorama_data`：持久化上传素材、抽帧结果和导出文件。
+
+Compose 可通过根目录 `.env` 覆盖 AI、地图、抽帧和前端构建变量。
+
+## 7. 环境变量清单
 
 后端：
 
@@ -164,7 +213,7 @@ VITE_API_BASE_URL=https://your-api-domain.com
 VITE_AMAP_WEB_KEY=
 ```
 
-## 7. 文件与持久化
+## 8. 文件与持久化
 
 当前本地文件目录：
 
@@ -188,7 +237,13 @@ api/data/exports
 - 阿里云 OSS
 - 腾讯云 COS
 
-## 8. FFmpeg
+Docker Compose 模式下文件持久化到命名卷：
+
+```text
+panorama_data
+```
+
+## 9. FFmpeg
 
 视频抽帧依赖系统 `ffmpeg` 命令。
 
@@ -205,9 +260,9 @@ MVP 兜底策略：
 - 抽帧任务异步化。
 - 保存 FFmpeg stderr 便于排查。
 
-## 9. Docker 化建议
+## 10. Docker 化后续建议
 
-当前仓库未包含 Dockerfile。建议后续拆分：
+当前仓库已包含基础 Dockerfile 和 Compose。生产化建议继续拆分：
 
 ```text
 api/Dockerfile
@@ -233,7 +288,7 @@ object-storage
 - `postgres` 存业务数据。
 - `redis` 存队列和短期缓存。
 
-## 10. 上线前检查清单
+## 11. 上线前检查清单
 
 - 设置 `APP_ENV=production`。
 - 设置正确的 `WEB_ORIGIN`。
@@ -248,7 +303,7 @@ object-storage
 - 检查隐私授权文案。
 - 检查 AI Key、地图 Key 是否只存在服务端环境变量中。
 
-## 11. 监控建议
+## 12. 监控建议
 
 后端建议监控：
 
@@ -267,7 +322,7 @@ object-storage
 - 一键演示完成率。
 - ZIP 导出点击率。
 
-## 12. 回滚策略
+## 13. 回滚策略
 
 MVP 阶段：
 
