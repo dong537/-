@@ -23,12 +23,15 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   bindHealthDevice,
   createHealthCapture,
+  deleteHealthUserData,
   downloadWeeklyReportPdf,
   generateDailyLog,
   generateWeeklyReport,
   getHealthDashboard,
   getRuntimeConfig,
+  getHealthTrends,
   resetDemo,
+  reviewHealthCapture,
   runHealthDemo,
   saveHealthProfile,
   syncHealthDevice,
@@ -36,7 +39,7 @@ import {
 } from "./api/client";
 import { SystemStatusPanel } from "./components/SystemStatusPanel";
 import type { RuntimeConfig } from "./api/client";
-import type { CaptureCreatePayload, HealthDashboard, HealthProfilePayload } from "./types";
+import type { CaptureCreatePayload, HealthDashboard, HealthProfilePayload, TrendResponse } from "./types";
 
 const userId = "demo_user";
 
@@ -103,6 +106,7 @@ export function App() {
   const [notice, setNotice] = useState("录入体征并绑定 Insta360 相机后，即可开始健康影像采集。");
   const [profile, setProfile] = useState<HealthProfilePayload>(defaultProfile);
   const [sceneHint, setSceneHint] = useState("breakfast");
+  const [trend, setTrend] = useState<TrendResponse | null>(null);
 
   const latestMetric = dashboard?.profile?.latest_metric;
   const todayLog = dashboard?.today_log;
@@ -222,6 +226,23 @@ export function App() {
     });
   }
 
+  async function handleFailedCaptureReview() {
+    await run("正在模拟识别失败并提交人工补充场景。", async () => {
+      const failed = await createHealthCapture({
+        user_id: userId,
+        device_id: device?.device_id,
+        capture_mode: "manual",
+        scene_hint: "unknown"
+      });
+      await reviewHealthCapture(failed.capture_id, {
+        scene_hint: "workout",
+        manual_note: "用户补充：这是一次中等强度运动。"
+      });
+      await refreshDashboard();
+      setNotice("识别失败图片已通过人工备注补充，并重新生成行为分析。");
+    });
+  }
+
   async function handleDaily() {
     await run("正在生成今日健康日志。", async () => {
       await generateDailyLog(userId);
@@ -251,6 +272,23 @@ export function App() {
       link.remove();
       URL.revokeObjectURL(url);
       setNotice("周度健康报告 PDF 已导出。");
+    });
+  }
+
+  async function handleLoadTrends() {
+    await run("正在加载近30天趋势数据。", async () => {
+      const result = await getHealthTrends(userId, 30);
+      setTrend(result);
+      setNotice("趋势数据已加载，可查看分数、体征和行为统计。");
+    });
+  }
+
+  async function handleDeletePrivacyData() {
+    await run("正在删除当前演示用户的健康隐私数据。", async () => {
+      const result = await deleteHealthUserData(userId, "all");
+      await refreshDashboard();
+      setTrend(null);
+      setNotice(`隐私数据已删除：共清理 ${Object.values(result.deleted_counts).reduce((sum, count) => sum + count, 0)} 条记录。`);
     });
   }
 
@@ -482,6 +520,10 @@ export function App() {
                   <Clock3 size={18} />
                   模拟定时采集
                 </button>
+                <button className="secondary-button" data-testid="review-capture-button" disabled={busy} onClick={handleFailedCaptureReview} type="button">
+                  <AlertTriangle size={18} />
+                  人工补充
+                </button>
               </div>
               <div className="behavior-list" data-testid="behavior-list">
                 {(dashboard?.recent_behaviors ?? []).slice(0, 5).map((behavior) => (
@@ -642,6 +684,37 @@ export function App() {
                 {(dashboard?.weekly_history ?? []).slice(0, 5).map((report) => (
                   <p key={report.report_id}>{report.week_start} / {report.average_overall_score}分</p>
                 ))}
+              </div>
+            </div>
+          </section>
+
+          <section className="panel-block privacy-panel">
+            <div className="section-heading compact">
+              <div>
+                <p className="eyebrow">Privacy</p>
+                <h2>趋势与隐私</h2>
+              </div>
+              <div className="action-row no-margin">
+                <button className="secondary-button" data-testid="load-trends-button" disabled={busy} onClick={handleLoadTrends} type="button">
+                  <TrendingUp size={18} />
+                  趋势
+                </button>
+                <button className="ghost-button" data-testid="delete-user-data-button" disabled={busy} onClick={handleDeletePrivacyData} type="button">
+                  <AlertTriangle size={18} />
+                  删除隐私数据
+                </button>
+              </div>
+            </div>
+            <div className="history-grid" data-testid="trend-panel">
+              <div>
+                <strong>分数趋势</strong>
+                <p>日度点位 {trend?.score_series.length ?? 0} 个</p>
+                <p>风险标签 {Object.keys(trend?.risk_flags ?? {}).length} 类</p>
+              </div>
+              <div>
+                <strong>体征与行为</strong>
+                <p>体征记录 {trend?.vital_series.length ?? 0} 条</p>
+                <p>行为日期 {trend?.behavior_series.length ?? 0} 天</p>
               </div>
             </div>
           </section>

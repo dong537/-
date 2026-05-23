@@ -170,6 +170,23 @@ export type OfflineSyncResponse = {
   synced_captures: CaptureResponse[];
 };
 
+export type TrendResponse = {
+  user_id: string;
+  range_days: number;
+  score_series: Array<Record<string, number | string>>;
+  vital_series: Array<Record<string, number | string | null>>;
+  behavior_series: Array<Record<string, number | string>>;
+  risk_flags: Record<string, number>;
+  generated_at: string;
+};
+
+export type DeleteUserDataResponse = {
+  user_id: string;
+  scope: string;
+  deleted_counts: Record<string, number>;
+  status: string;
+};
+
 export type DemoFlowResponse = {
   profile: HealthProfileResponse;
   device: DeviceResponse;

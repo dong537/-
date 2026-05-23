@@ -241,6 +241,8 @@ def update_device(device_id: str, payload: dict[str, Any]) -> dict[str, Any] | N
 
 def _scene_from_hint(scene_hint: str | None) -> dict[str, Any]:
     hint = (scene_hint or "").strip().lower()
+    if hint in {"unknown", "fail", "failed", "unrecognized"}:
+        return {}
     if not hint:
         hint = DEMO_SCENES[len(store.captures) % len(DEMO_SCENES)]
     for key, scene in SCENE_LIBRARY.items():
@@ -289,6 +291,12 @@ def _behavior_for_capture(capture: dict[str, Any]) -> dict[str, Any]:
 
 
 def _analyze_capture(capture: dict[str, Any]) -> dict[str, Any]:
+    if _scene_from_hint(capture.get("scene_hint")) == {}:
+        capture["analysis"] = None
+        capture["status"] = "needs_review"
+        capture["synced_at"] = now_iso()
+        capture["review_note"] = "AI recognition failed; manual scene note required."
+        return capture
     behavior = _behavior_for_capture(capture)
     capture["analysis"] = behavior
     capture["status"] = "analyzed"
@@ -357,6 +365,25 @@ def sync_offline_captures(device_id: str) -> dict[str, Any] | None:
     device["updated_at"] = timestamp
     persist_store()
     return {"device": device, "synced_captures": synced}
+
+
+def review_capture(capture_id: str, payload: dict[str, Any]) -> dict[str, Any] | None:
+    capture = store.captures.get(capture_id)
+    if not capture:
+        return None
+    old_behavior_id = capture.get("analysis", {}).get("behavior_id") if capture.get("analysis") else None
+    if old_behavior_id:
+        store.behavior_records.pop(old_behavior_id, None)
+    capture["scene_hint"] = payload["scene_hint"]
+    capture["manual_note"] = payload.get("manual_note")
+    capture["special_tag"] = "manual_review"
+    reviewed = _analyze_capture(capture)
+    if reviewed["status"] == "needs_review":
+        reviewed["status"] = "review_failed"
+    else:
+        reviewed["status"] = "reviewed"
+    persist_store()
+    return reviewed
 
 
 def _captures_for_day(user_id: str, date_key: str) -> list[dict[str, Any]]:
@@ -504,6 +531,82 @@ def list_weekly_reports(user_id: str = DEFAULT_USER_ID, limit: int = 12) -> list
 
 def get_weekly_report(report_id: str) -> dict[str, Any] | None:
     return store.weekly_reports.get(report_id)
+
+
+def get_trends(user_id: str = DEFAULT_USER_ID, range_days: int = 30) -> dict[str, Any]:
+    range_days = max(1, min(range_days, 365))
+    end = datetime.now(UTC).date()
+    start = end - timedelta(days=range_days - 1)
+    daily_logs = [
+        log
+        for log in store.daily_logs.values()
+        if log["user_id"] == user_id and start <= datetime.fromisoformat(log["date"]).date() <= end
+    ]
+    metrics = [
+        metric
+        for metric in store.health_metrics.values()
+        if metric["user_id"] == user_id and start <= _parse_dt(metric["recorded_at"]).date() <= end
+    ]
+    captures = [
+        capture
+        for capture in store.captures.values()
+        if capture["user_id"] == user_id and start <= _parse_dt(capture["captured_at"]).date() <= end and capture.get("analysis")
+    ]
+    risk_flags = Counter(flag for capture in captures for flag in capture["analysis"]["risk_flags"])
+    behavior_by_day: dict[str, Counter] = {}
+    for capture in captures:
+        date_key = _date_key(capture["captured_at"])
+        behavior_by_day.setdefault(date_key, Counter())[capture["analysis"]["category"]] += 1
+    return {
+        "user_id": user_id,
+        "range_days": range_days,
+        "score_series": [
+            {
+                "date": log["date"],
+                "overall_score": log["overall_score"],
+                "body_score": log["body_score"],
+                "mental_score": log["mental_score"],
+            }
+            for log in sorted(daily_logs, key=lambda item: item["date"])
+        ],
+        "vital_series": [
+            {
+                "recorded_at": metric["recorded_at"],
+                "bmi": metric["vital_signs"].get("bmi"),
+                "systolic_bp": metric["vital_signs"].get("systolic_bp"),
+                "diastolic_bp": metric["vital_signs"].get("diastolic_bp"),
+                "heart_rate": metric["vital_signs"].get("heart_rate"),
+                "blood_glucose": metric["vital_signs"].get("blood_glucose"),
+            }
+            for metric in sorted(metrics, key=lambda item: item["recorded_at"])
+        ],
+        "behavior_series": [
+            {"date": date_key, **dict(counter)}
+            for date_key, counter in sorted(behavior_by_day.items(), key=lambda item: item[0])
+        ],
+        "risk_flags": dict(risk_flags),
+        "generated_at": now_iso(),
+    }
+
+
+def delete_user_data(user_id: str = DEFAULT_USER_ID, scope: str = "all") -> dict[str, Any]:
+    deleted_counts: dict[str, int] = {}
+    scoped_collections = {
+        "health": ("health_profiles", "health_metrics", "daily_logs", "weekly_reports"),
+        "captures": ("captures", "behavior_records"),
+        "devices": ("devices",),
+        "all": ("health_profiles", "health_metrics", "daily_logs", "weekly_reports", "captures", "behavior_records", "devices"),
+    }
+    collections = scoped_collections.get(scope, scoped_collections["all"])
+    for name in collections:
+        collection = getattr(store, name)
+        before = len(collection)
+        for item_id, item in list(collection.items()):
+            if item.get("user_id") == user_id:
+                collection.pop(item_id, None)
+        deleted_counts[name] = before - len(collection)
+    persist_store()
+    return {"user_id": user_id, "scope": scope, "deleted_counts": deleted_counts, "status": "deleted"}
 
 
 def get_dashboard(user_id: str = DEFAULT_USER_ID) -> dict[str, Any]:

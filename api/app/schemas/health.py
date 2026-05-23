@@ -93,6 +93,11 @@ class CaptureCreateRequest(BaseModel):
     captured_at: str | None = None
 
 
+class CaptureReviewRequest(BaseModel):
+    scene_hint: str = Field(..., min_length=1, max_length=80)
+    manual_note: str | None = Field(default=None, max_length=500)
+
+
 class BehaviorRecordResponse(BaseModel):
     behavior_id: str
     capture_id: str
@@ -125,6 +130,23 @@ class CaptureResponse(BaseModel):
 class OfflineSyncResponse(BaseModel):
     device: DeviceResponse
     synced_captures: list[CaptureResponse]
+
+
+class TrendResponse(BaseModel):
+    user_id: str
+    range_days: int
+    score_series: list[dict]
+    vital_series: list[dict]
+    behavior_series: list[dict]
+    risk_flags: dict
+    generated_at: str
+
+
+class DeleteUserDataResponse(BaseModel):
+    user_id: str
+    scope: str
+    deleted_counts: dict[str, int]
+    status: str
 
 
 class DailyLogResponse(BaseModel):

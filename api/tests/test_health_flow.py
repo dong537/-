@@ -147,3 +147,53 @@ def test_device_offline_cache_history_and_weekly_pdf() -> None:
     assert pdf.status_code == 200
     assert pdf.headers["content-type"] == "application/pdf"
     assert pdf.content.startswith(b"%PDF")
+
+
+def test_review_failed_capture_trends_and_privacy_delete() -> None:
+    demo = client.post("/api/health/demo")
+    assert demo.status_code == 200
+    device_id = demo.json()["device"]["device_id"]
+
+    failed = client.post(
+        "/api/health/captures",
+        json={
+            "user_id": "demo_user",
+            "device_id": device_id,
+            "capture_mode": "manual",
+            "scene_hint": "unknown",
+        },
+    )
+    assert failed.status_code == 200
+    failed_body = failed.json()
+    assert failed_body["status"] == "needs_review"
+    assert failed_body["analysis"] is None
+
+    reviewed = client.post(
+        f"/api/health/captures/{failed_body['capture_id']}/review",
+        json={"scene_hint": "workout", "manual_note": "manual review from user"},
+    )
+    assert reviewed.status_code == 200
+    reviewed_body = reviewed.json()
+    assert reviewed_body["status"] == "reviewed"
+    assert reviewed_body["special_tag"] == "manual_review"
+    assert reviewed_body["analysis"]["category"] == "exercise"
+
+    daily = client.post("/api/health/daily/demo_user")
+    assert daily.status_code == 200
+
+    trends = client.get("/api/health/trends/demo_user?range_days=30")
+    assert trends.status_code == 200
+    trends_body = trends.json()
+    assert trends_body["score_series"]
+    assert trends_body["vital_series"]
+    assert trends_body["behavior_series"]
+
+    delete = client.delete("/api/health/users/demo_user?scope=all")
+    assert delete.status_code == 200
+    delete_body = delete.json()
+    assert delete_body["status"] == "deleted"
+    assert delete_body["deleted_counts"]["captures"] >= 1
+
+    dashboard = client.get("/api/health/dashboard")
+    assert dashboard.status_code == 200
+    assert dashboard.json()["status"]["capture_count"] == 0

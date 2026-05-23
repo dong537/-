@@ -3,6 +3,7 @@ import type {
   CaptureCreatePayload,
   CaptureResponse,
   DailyLogResponse,
+  DeleteUserDataResponse,
   DemoFlowResponse,
   DeviceBindPayload,
   DeviceResponse,
@@ -17,6 +18,7 @@ import type {
   RoutePlan,
   TripDetail,
   TripSummary,
+  TrendResponse,
   UserStatus,
   WeeklyReportResponse
 } from "../types";
@@ -133,12 +135,29 @@ export async function createHealthCapture(payload: CaptureCreatePayload) {
   });
 }
 
+export async function reviewHealthCapture(captureId: string, payload: { scene_hint: string; manual_note?: string | null }) {
+  return request<CaptureResponse>(`/api/health/captures/${encodeURIComponent(captureId)}/review`, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
 export async function generateDailyLog(userId = "demo_user") {
   return request<DailyLogResponse>(`/api/health/daily/${encodeURIComponent(userId)}`, { method: "POST" });
 }
 
 export async function generateWeeklyReport(userId = "demo_user") {
   return request<WeeklyReportResponse>(`/api/health/weekly/${encodeURIComponent(userId)}`, { method: "POST" });
+}
+
+export async function getHealthTrends(userId = "demo_user", rangeDays = 30) {
+  return request<TrendResponse>(`/api/health/trends/${encodeURIComponent(userId)}?range_days=${rangeDays}`);
+}
+
+export async function deleteHealthUserData(userId = "demo_user", scope = "all") {
+  return request<DeleteUserDataResponse>(`/api/health/users/${encodeURIComponent(userId)}?scope=${encodeURIComponent(scope)}`, {
+    method: "DELETE"
+  });
 }
 
 export async function downloadWeeklyReportPdf(reportId: string) {

@@ -7,12 +7,15 @@ from app.domain.health_service import (
     DEFAULT_USER_ID,
     bind_device,
     create_capture,
+    delete_user_data,
     generate_daily_log,
     generate_weekly_report,
     get_dashboard,
+    get_trends,
     get_weekly_report,
     list_daily_logs,
     list_weekly_reports,
+    review_capture,
     run_demo_flow,
     sync_offline_captures,
     update_device,
@@ -22,7 +25,9 @@ from app.domain.store import store
 from app.schemas.health import (
     CaptureCreateRequest,
     CaptureResponse,
+    CaptureReviewRequest,
     DailyLogResponse,
+    DeleteUserDataResponse,
     DemoFlowResponse,
     DeviceBindRequest,
     DeviceResponse,
@@ -31,6 +36,7 @@ from app.schemas.health import (
     HealthProfileRequest,
     HealthProfileResponse,
     OfflineSyncResponse,
+    TrendResponse,
     WeeklyReportResponse,
 )
 
@@ -87,6 +93,14 @@ def create_capture_endpoint(payload: CaptureCreateRequest) -> dict:
     return create_capture(payload.model_dump())
 
 
+@router.post("/captures/{capture_id}/review", response_model=CaptureResponse)
+def review_capture_endpoint(capture_id: str, payload: CaptureReviewRequest) -> dict:
+    capture = review_capture(capture_id, payload.model_dump())
+    if not capture:
+        raise HTTPException(status_code=404, detail="Capture not found")
+    return capture
+
+
 @router.post("/daily/{user_id}", response_model=DailyLogResponse)
 def generate_daily(user_id: str, date: str | None = None) -> dict:
     return generate_daily_log(user_id, date)
@@ -95,6 +109,11 @@ def generate_daily(user_id: str, date: str | None = None) -> dict:
 @router.get("/daily/{user_id}", response_model=list[DailyLogResponse])
 def daily_history(user_id: str, limit: int = 30) -> list[dict]:
     return list_daily_logs(user_id, max(1, min(limit, 90)))
+
+
+@router.get("/trends/{user_id}", response_model=TrendResponse)
+def trends(user_id: str, range_days: int = 30) -> dict:
+    return get_trends(user_id, range_days)
 
 
 @router.post("/weekly/{user_id}", response_model=WeeklyReportResponse)
@@ -125,3 +144,8 @@ def export_weekly_pdf(report_id: str) -> Response:
 @router.post("/demo", response_model=DemoFlowResponse)
 def demo_flow(user_id: str = DEFAULT_USER_ID) -> dict:
     return run_demo_flow(user_id)
+
+
+@router.delete("/users/{user_id}", response_model=DeleteUserDataResponse)
+def delete_user(user_id: str, scope: str = "all") -> dict:
+    return delete_user_data(user_id, scope)
