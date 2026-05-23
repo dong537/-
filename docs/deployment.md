@@ -76,6 +76,8 @@ CI 配置：
   - Python 3.12
   - 安装 `api/requirements-dev.txt`
   - 执行 `python -m pytest -q`
+  - 启动本地 Uvicorn 服务
+  - 执行 `scripts/smoke-test.ps1`
 - `Web build`
   - Node 22
   - 执行 `npm ci`

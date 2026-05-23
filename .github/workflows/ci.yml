@@ -30,6 +30,33 @@ jobs:
       - name: Run tests
         run: python -m pytest -q
 
+      - name: Start API for smoke test
+        shell: bash
+        run: |
+          python -m uvicorn app.main:app --host 127.0.0.1 --port 8010 > /tmp/panorama-api.log 2>&1 &
+          echo $! > /tmp/panorama-api.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:8010/health > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/panorama-api.log
+          exit 1
+
+      - name: Run API smoke test
+        shell: pwsh
+        working-directory: .
+        run: ./scripts/smoke-test.ps1 -Api http://127.0.0.1:8010
+
+      - name: Stop API smoke server
+        if: always()
+        shell: bash
+        run: |
+          if [ -f /tmp/panorama-api.pid ]; then
+            kill "$(cat /tmp/panorama-api.pid)" || true
+          fi
+
   web:
     name: Web build
     runs-on: ubuntu-latest

@@ -223,6 +223,8 @@ node .\node_modules\vite\bin\vite.js build
 .\scripts\smoke-test.ps1
 ```
 
+烟测覆盖 `/health`、`/ready`、路线生成、演示素材、抽帧、精彩标记、AI 讲解、自动出片、manifest、ZIP bundle 和最近行程恢复列表。
+
 ## 9. 环境变量
 
 后端：
