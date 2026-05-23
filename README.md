@@ -172,6 +172,13 @@ cd web
 & 'C:\Program Files\nodejs\npm.cmd' run build
 ```
 
+前端 E2E：
+
+```powershell
+cd web
+npm run test:e2e
+```
+
 ## 演示辅助
 
 重置演示状态：

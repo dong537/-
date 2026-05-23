@@ -55,7 +55,7 @@ export function SystemStatusPanel() {
   const counts = snapshot.config?.counts ?? {};
 
   return (
-    <section className="system-panel">
+    <section className="system-panel" data-testid="system-status-panel">
       <div className="section-heading compact">
         <div>
           <p className="eyebrow">Runtime</p>

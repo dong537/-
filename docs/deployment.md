@@ -48,6 +48,13 @@ cd web
 npm run build
 ```
 
+前端 E2E：
+
+```powershell
+cd web
+npm run test:e2e
+```
+
 如果 PowerShell 的 `npm` 解析异常，可使用：
 
 ```powershell
@@ -82,6 +89,8 @@ CI 配置：
   - Node 22
   - 执行 `npm ci`
   - 执行 `npm run build`
+  - 安装 Playwright Chromium
+  - 启动 API 并执行 `npm run test:e2e`
 - `Docker image builds`
   - 构建 `api/Dockerfile`
   - 构建 `web/Dockerfile`

@@ -52,7 +52,7 @@ export function ResumeTripPanel({
   }, [activeTripId]);
 
   return (
-    <section className="resume-panel">
+    <section className="resume-panel" data-testid="resume-panel">
       <div className="section-heading compact">
         <div>
           <p className="eyebrow">Resume</p>
@@ -68,7 +68,7 @@ export function ResumeTripPanel({
       ) : (
         <div className="resume-list">
           {trips.map((trip) => (
-            <button className={trip.trip_id === activeTripId ? "resume-item is-active" : "resume-item"} disabled={busy || loading} key={trip.trip_id} onClick={() => resume(trip.trip_id)} type="button">
+            <button className={trip.trip_id === activeTripId ? "resume-item is-active" : "resume-item"} data-testid="resume-trip-button" disabled={busy || loading} key={trip.trip_id} onClick={() => resume(trip.trip_id)} type="button">
               <div>
                 <strong>{trip.destination}</strong>
                 <span>{trip.status} · {trip.duration_minutes} min</span>

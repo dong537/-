@@ -48,6 +48,7 @@ Local MVP Storage
 | 地图 | 高德 JS API / Demo Map | 有 `VITE_AMAP_WEB_KEY` 时加载高德，否则使用演示地图 |
 | 语音 | Web Speech API | 浏览器端播报 AI 伴游讲解 |
 | 样式 | CSS | 轻量响应式布局，无外部 UI 框架 |
+| E2E 测试 | Playwright | 验证一键演示、运行状态和最近演示恢复 |
 
 前端关键文件：
 
@@ -215,6 +216,13 @@ node .\node_modules\typescript\bin\tsc -b
 ```powershell
 cd web
 node .\node_modules\vite\bin\vite.js build
+```
+
+前端 E2E：
+
+```powershell
+cd web
+npm run test:e2e
 ```
 
 烟测：

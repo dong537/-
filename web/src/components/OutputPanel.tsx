@@ -29,7 +29,7 @@ export function OutputPanel({
 
       {result ? (
         <>
-          <div className="gallery">
+          <div className="gallery" data-testid="selected-gallery">
             {result.selected_frames.map((frame) => (
               <figure key={frame.frame_id}>
                 <img alt={frame.ai_caption ?? "精选图"} src={frame.image_url} />
@@ -52,7 +52,7 @@ export function OutputPanel({
               </button>
             </div>
           </article>
-          <article className="draft-card">
+          <article className="draft-card" data-testid="video-draft">
             <p className="eyebrow">视频草稿</p>
             <div className="draft-list">
               {result.video_draft.map((item) => (

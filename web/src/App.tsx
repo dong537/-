@@ -278,13 +278,13 @@ export function App() {
           <h1>让地图、全景画面和 AI 一起陪你走完一段 City Walk</h1>
         </div>
         <div className="hero-actions">
-          <button className="demo-run-button" disabled={busy} onClick={handleRunDemo} type="button">
+          <button className="demo-run-button" data-testid="run-demo-button" disabled={busy} onClick={handleRunDemo} type="button">
             <FastForward size={18} />
             一键演示
           </button>
           <div className="status-pill">
             {busy ? <Loader2 className="spin" size={18} /> : <Sparkles size={18} />}
-            <span>{notice}</span>
+            <span data-testid="notice-text">{notice}</span>
           </div>
         </div>
       </section>

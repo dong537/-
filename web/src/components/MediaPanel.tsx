@@ -78,7 +78,7 @@ export function MediaPanel({ media, frames, companion, busy, onUpload, onDemo, o
         </button>
       </div>
       {frames.length ? (
-        <div className="frame-strip" aria-label="候选帧">
+        <div className="frame-strip" aria-label="候选帧" data-testid="frame-strip">
           {frames.map((frame) => (
             <div className={`frame-thumb ${frame.marked ? "is-marked" : ""}`} key={frame.frame_id}>
               <button className="frame-image-button" onClick={() => onAnalyze(frame.frame_id)} type="button">
